@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暑期化學營學習平台</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f0f4f9;
+            /* Gemini 的淺灰藍背景 */
+        }
+
+        /* 側邊欄項目按鈕樣式 */
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 9999px;
+            cursor: pointer;
+            color: #444746;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .sidebar-item:hover {
+            background-color: #e8eaed;
+        }
+
+        .sidebar-item.active {
+            background-color: #d3e3fd;
+            color: #041e49;
+        }
+
+        .sidebar-item .material-symbols-outlined {
+            font-size: 20px;
+        }
+
+        /* 隱藏捲軸但保持可捲動 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden text-gray-800">
+
+    <aside id="sidebar"
+        class="w-64 flex flex-col p-3 gap-1 z-20 transition-transform duration-300 absolute md:relative -translate-x-full md:translate-x-0 h-full bg-[#f0f4f9]">
+        <!-- Logo 與標題 -->
+        <div class="p-4 mb-4 text-xl font-bold text-gray-700 flex items-center gap-3">
+            <span class="material-symbols-outlined text-blue-600" style="font-size: 28px;">biotech</span>
+            化學平台
+        </div>
+
+        <!-- 導覽按鈕 -->
+        <div class="flex-1 overflow-y-auto flex flex-col gap-1">
+            <div class="sidebar-item active" data-page="home" data-title="首頁儀表板">
+                <span class="material-symbols-outlined">home</span> 首頁儀表板
+            </div>
+            <div class="sidebar-item" data-page="notes" data-title="暑期講義">
+                <span class="material-symbols-outlined">menu_book</span> 暑期講義
+            </div>
+            <div class="sidebar-item" data-page="exam-paper" data-title="暑期理論試卷">
+                <span class="material-symbols-outlined">description</span> 暑期理論試卷
+            </div>
+            <!-- 重點：將 data-src 的路徑指向您的新資料夾中的 index.html -->
+            <div class="sidebar-item" data-page="exam-answer" data-title="暑期理論作答"
+                data-src="TheoricalAnswerSheet/index.html">
+                <span class="material-symbols-outlined">edit_square</span> 暑期理論作答
+            </div>
+            <div class="sidebar-item" data-page="transcript" data-title="暑期成績單">
+                <span class="material-symbols-outlined">analytics</span> 暑期成績單
+            </div>
+            <div class="sidebar-item" data-page="auction" data-title="暑期競標">
+                <span class="material-symbols-outlined">gavel</span> 暑期競標
+            </div>
+        </div>
+    </aside>
+
+    <!-- 使用白底圓角，營造 App 的包覆感 -->
+    <main
+        class="flex-1 flex flex-col bg-white rounded-[32px] my-2 mr-2 ml-2 md:ml-0 shadow-sm relative overflow-hidden border border-gray-100">
+
+        <!-- 頂部 Header -->
+        <header
+            class="h-16 flex justify-between items-center px-6 border-b border-gray-100 shrink-0 bg-white/80 backdrop-blur-md z-10">
+            <div class="flex items-center gap-3">
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-full hover:bg-gray-100 text-gray-600">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h2 id="page-title" class="text-lg font-medium text-gray-800">首頁儀表板</h2>
+            </div>
+
+            <!-- 登入與使用者資訊區塊 -->
+            <div>
+                <button id="login-btn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-sm font-medium transition-colors shadow-sm">
+                    登入系統
+                </button>
+                <div id="user-profile"
+                    class="hidden flex items-center gap-3 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
+                    <div
+                        class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                        <span id="user-avatar-text">U</span>
+                    </div>
+                    <span id="user-name" class="text-sm font-medium text-gray-700"></span>
+                    <button id="logout-btn" class="text-gray-400 hover:text-red-500 transition-colors flex items-center"
+                        title="登出">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 內容容器 (Iframe) -->
+        <div class="flex-1 relative bg-[#f8fafc]">
+            <!-- 這裡使用 iframe 來載入各自獨立的 html 檔案，確保 css/js 完全分離不共用 -->
+            <iframe id="content-frame" class="w-full h-full border-0 bg-white" src="about:blank"></iframe>
+
+            <div id="login-modal"
+                class="hidden absolute inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex justify-center items-center opacity-0 transition-opacity duration-300">
+                <div class="bg-white p-8 rounded-3xl shadow-2xl w-[400px] border border-gray-100 transform scale-95 transition-transform duration-300"
+                    id="login-modal-box">
+
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 id="modal-title" class="text-2xl font-bold text-gray-800">登入帳號</h3>
+                        <button id="close-modal-btn"
+                            class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+
+                    <!-- 系統提示訊息 -->
+                    <div id="auth-error"
+                        class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">error</span>
+                        <span id="auth-error-text">錯誤訊息</span>
+                    </div>
+
+                    <!-- 表單 -->
+                    <form id="auth-form" class="flex flex-col gap-4">
+                        <div id="name-field" class="hidden flex-col gap-1">
+                            <label class="text-sm font-medium text-gray-600 ml-1">顯示名稱</label>
+                            <input type="text" id="auth-name" placeholder="輸入您的真實姓名"
+                                class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-medium text-gray-600 ml-1">電子郵件</label>
+                            <input type="email" id="auth-email" placeholder="example@email.com" required
+                                class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-medium text-gray-600 ml-1">密碼</label>
+                            <input type="password" id="auth-password" placeholder="輸入6位數以上密碼" required
+                                class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all">
+                        </div>
+
+                        <button type="submit" id="auth-submit-btn"
+                            class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+                            登入
+                        </button>
+                    </form>
+
+                    <!-- 切換註冊/登入 -->
+                    <div class="mt-6 text-center text-sm text-gray-500">
+                        <span id="auth-switch-text">還沒有帳號嗎？</span>
+                        <button id="auth-switch-btn" class="text-blue-600 font-medium hover:underline">立即註冊</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. Firebase 初始化設定
+        // ==========================================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dhjh-summer-camp';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 初始化環境安全驗證 (為確保資料庫安全，需先取得基本連線權限)
+        async function initAuth() {
+            if (typeof __initial_auth_token !== 'undefined') {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        }
+        initAuth();
+
+        // ==========================================
+        // 2. 介面互動邏輯 (選單切換與 Iframe 載入)
+        // ==========================================
+        const iframe = document.getElementById('content-frame');
+        const pageTitle = document.getElementById('page-title');
+        const sidebarItems = document.querySelectorAll('.sidebar-item');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+
+        // 手機版側邊欄開關
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // 動態生成「施工中」的提示網頁內容
+        function getConstructionHTML(title) {
+            return `
+                <!DOCTYPE html>
+                <html><head>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+                </head>
+                <body class="flex items-center justify-center h-full bg-white text-gray-500 font-sans m-0">
+                    <div class="text-center p-8 bg-gray-50 rounded-[32px] border border-gray-100 shadow-sm max-w-md">
+                        <span class="material-symbols-outlined text-gray-300 mb-4" style="font-size: 64px;">construction</span>
+                        <h2 class="text-2xl font-bold text-gray-700 mb-2">${title}</h2>
+                        <p class="text-gray-500">此模組尚在開發階段。<br>未來將以獨立的 <b>.html</b> 檔案載入於此空間，確保樣式與邏輯完全獨立。</p>
+                    </div>
+                </body></html>
+            `;
+        }
+
+        // 首頁儀表板內容
+        function getHomeHTML() {
+            return `
+                <!DOCTYPE html>
+                <html><head>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+                </head>
+                <body class="p-8 bg-white text-gray-800 font-sans m-0">
+                    <h1 class="text-3xl font-bold mb-2">歡迎來到暑期化學學習平台 👋</h1>
+                    <p class="text-gray-500 mb-8">請從左側選單選擇您要進入的子系統。所有子系統皆為獨立運行。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-6 bg-blue-50 rounded-[24px] border border-blue-100">
+                            <span class="material-symbols-outlined text-blue-600 mb-2" style="font-size: 32px;">campaign</span>
+                            <h3 class="text-lg font-bold text-blue-900">最新公告</h3>
+                            <p class="text-blue-700 mt-2">請同學先點擊右上角登入系統。<br>「暑期理論作答」模組已上線，可前往測試。</p>
+                        </div>
+                        <div class="p-6 bg-green-50 rounded-[24px] border border-green-100">
+                            <span class="material-symbols-outlined text-green-600 mb-2" style="font-size: 32px;">account_balance_wallet</span>
+                            <h3 class="text-lg font-bold text-green-900">點數系統 (開發中)</h3>
+                            <p class="text-green-700 mt-2">您的考試分數將在此處轉換為競標點數，敬請期待暑期競標大會！</p>
+                        </div>
+                    </div>
+                </body></html>
+            `;
+        }
+
+        // 處理側邊欄點擊事件
+        sidebarItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                // 更新 Active 狀態
+                sidebarItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                // 更新標題
+                const title = item.getAttribute('data-title');
+                pageTitle.innerText = title;
+
+                // 處理 Iframe 載入
+                const pageId = item.getAttribute('data-page');
+                const src = item.getAttribute('data-src');
+
+                if (src) {
+                    // 如果有指定檔案 (如 exam.html)，直接載入該檔案
+                    iframe.src = src;
+                } else if (pageId === 'home') {
+                    const doc = iframe.contentWindow.document;
+                    doc.open(); doc.write(getHomeHTML()); doc.close();
+                } else {
+                    // 其他尚未建立的頁面，顯示施工中
+                    const doc = iframe.contentWindow.document;
+                    doc.open(); doc.write(getConstructionHTML(title)); doc.close();
+                }
+
+                // 手機版點擊後自動收起側邊欄
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            });
+        });
+
+        // 預設載入首頁
+        document.querySelector('[data-page="home"]').click();
+
+
+        // ==========================================
+        // 3. 登入與註冊系統 (Firebase Auth & Firestore)
+        // ==========================================
+        const loginModal = document.getElementById('login-modal');
+        const loginModalBox = document.getElementById('login-modal-box');
+        const loginBtn = document.getElementById('login-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const authForm = document.getElementById('auth-form');
+        const authSwitchBtn = document.getElementById('auth-switch-btn');
+        const authError = document.getElementById('auth-error');
+        const authErrorText = document.getElementById('auth-error-text');
+        
+        let isLoginMode = true; // true: 登入模式, false: 註冊模式
+
+        // 開關 Modal
+        function openModal() {
+            loginModal.classList.remove('hidden');
+            // 延遲一點點加上 opacity 產生淡入動畫
+            setTimeout(() => {
+                loginModal.classList.remove('opacity-0');
+                loginModalBox.classList.remove('scale-95');
+            }, 10);
+        }
+        function closeModal() {
+            loginModal.classList.add('opacity-0');
+            loginModalBox.classList.add('scale-95');
+            setTimeout(() => loginModal.classList.add('hidden'), 300);
+            authError.classList.add('hidden');
+        }
+
+        loginBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+
+        // 切換登入/註冊表單外觀
+        authSwitchBtn.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            authError.classList.add('hidden');
+            authForm.reset();
+
+            if (isLoginMode) {
+                document.getElementById('modal-title').innerText = '登入帳號';
+                document.getElementById('name-field').classList.add('hidden');
+                document.getElementById('auth-submit-btn').innerText = '登入';
+                document.getElementById('auth-switch-text').innerText = '還沒有帳號嗎？';
+                authSwitchBtn.innerText = '立即註冊';
+            } else {
+                document.getElementById('modal-title').innerText = '建立新帳號';
+                document.getElementById('name-field').classList.remove('hidden');
+                document.getElementById('auth-name').required = true;
+                document.getElementById('auth-submit-btn').innerText = '註冊並登入';
+                document.getElementById('auth-switch-text').innerText = '已經有帳號了？';
+                authSwitchBtn.innerText = '切換登入';
+            }
+        });
+
+        // 顯示錯誤訊息
+        function showError(msg) {
+            authErrorText.innerText = msg;
+            authError.classList.remove('hidden');
+            // 震動動畫
+            loginModalBox.classList.add('animate-pulse');
+            setTimeout(() => loginModalBox.classList.remove('animate-pulse'), 300);
+        }
+
+        // 處理表單送出 (登入或註冊)
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('auth-submit-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '處理中...';
+            btn.disabled = true;
+            authError.classList.add('hidden');
+
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const name = document.getElementById('auth-name').value;
+
+            try {
+                if (isLoginMode) {
+                    // 執行登入
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    // 執行註冊
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    
+                    // 更新 Firebase Auth 上的顯示名稱
+                    await updateProfile(user, { displayName: name });
+                    
+                    // 將帳戶資訊額外存入 Firestore 資料庫 (符合您的需求)
+                    // 路徑規則：/artifacts/{appId}/users/{userId}/profile
+                    const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile');
+                    await setDoc(userRef, {
+                        name: name,
+                        email: email,
+                        role: 'student',
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                closeModal();
+                authForm.reset();
+            } catch (error) {
+                console.error("Auth Error:", error);
+                let errorMsg = '發生錯誤，請稍後再試。';
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMsg = '電子郵件或密碼錯誤！';
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorMsg = '此信箱已被註冊！';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMsg = '密碼強度太弱，至少需要6個字元。';
+                }
+                showError(errorMsg);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // ==========================================
+        // 4. 監聽登入狀態並更新右上角介面
+        // ==========================================
+        const userProfile = document.getElementById('user-profile');
+        const userNameDisplay = document.getElementById('user-name');
+        const userAvatarText = document.getElementById('user-avatar-text');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        onAuthStateChanged(auth, async (user) => {
+            // 注意：因為我們初始化使用了 signInAnonymously，所以要排除匿名帳戶
+            if (user && !user.isAnonymous) {
+                // 成功登入真實帳號
+                loginBtn.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+                
+                const displayName = user.displayName || user.email.split('@')[0];
+                userNameDisplay.innerText = displayName;
+                userAvatarText.innerText = displayName.charAt(0).toUpperCase();
+
+                // 未來擴充：您可以從這裡把 userId 傳給 Iframe 內的測驗系統
+                // iframe.contentWindow.postMessage({ type: 'USER_LOGIN', userId: user.uid }, '*');
+            } else {
+                // 未登入 (或處於匿名狀態)
+                loginBtn.classList.remove('hidden');
+                userProfile.classList.add('hidden');
+            }
+        });
+
+        // 登出功能
+        logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            // 登出後重新退回匿名狀態以維持 Canvas/Firestore 讀取權限
+            initAuth(); 
+        });
+
+    </script>
+</body>
+
+</html>
