@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>答案卷</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 視圖一：登入區塊 -->
+        <section id="login_section" class="card">
+            <h2>系統登入</h2>
+            <div class="form-group">
+                <label for="student_id">帳號</label>
+                <input type="text" id="student_id" placeholder="例如: s123456" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密碼</label>
+                <input type="password" id="password" placeholder="請輸入密碼" required>
+            </div>
+            <div class="action-section">
+                <button class="btn-primary" onclick="verifyLogin()">登入</button>
+                <span id="login_status" class="status-msg"></span>
+            </div>
+        </section>
+
+        <!-- 視圖二：等候室區塊 -->
+        <section id="waiting_section" class="card hidden">
+            <h2>等候開考</h2>
+            <div style="margin: 30px 0;">
+                <p>身分驗證成功。</p>
+                <p>距離開考時間剩餘：</p>
+                <h1 id="countdown_timer" style="color: #0056b3; font-size: 3rem;">--:--</h1>
+            </div>
+        </section>
+
+        <!-- 視圖三：測驗區塊 -->
+        <section id="exam_section" class="card hidden">
+            <header class="system-header">
+                <h1>理論測驗作答區</h1>
+                <p id="student_info_display"></p>
+            </header>
+
+            <!-- 題組一 -->
+            <div class="question-group">
+                <div class="question-group-header">
+                    <span>題組一 (第 1-5 題)</span>
+                    <button type="button" class="btn-primary"
+                        style="padding: 4px 12px; font-size: 0.95rem; border-radius: 4px;"
+                        onclick="requestGroupCheck('q1,q2,q3,q4,q5')">一鍵檢查</button>
+                </div>
+
+                <!-- 第 1-5 題：選擇題 -->
+
+                <!-- 1 -->
+                <div class="question-row">
+                    <span class="q-num">1.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q1" value="A"> A</label>
+                        <label><input type="radio" name="q1" value="B"> B</label>
+                        <label><input type="radio" name="q1" value="C"> C</label>
+                        <label><input type="radio" name="q1" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q1_btn" class="btn-q-mark" onclick="requestCheck('q1')">?</button>
+                        <span id="q1_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 2 -->
+                <div class="question-row">
+                    <span class="q-num">2.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q2" value="A"> A</label>
+                        <label><input type="radio" name="q2" value="B"> B</label>
+                        <label><input type="radio" name="q2" value="C"> C</label>
+                        <label><input type="radio" name="q2" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q2_btn" class="btn-q-mark" onclick="requestCheck('q2')">?</button>
+                        <span id="q2_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 3 -->
+                <div class="question-row">
+                    <span class="q-num">3.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q3" value="A"> A</label>
+                        <label><input type="radio" name="q3" value="B"> B</label>
+                        <label><input type="radio" name="q3" value="C"> C</label>
+                        <label><input type="radio" name="q3" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q3_btn" class="btn-q-mark" onclick="requestCheck('q3')">?</button>
+                        <span id="q3_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 4 -->
+                <div class="question-row">
+                    <span class="q-num">4.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q4" value="A"> A</label>
+                        <label><input type="radio" name="q4" value="B"> B</label>
+                        <label><input type="radio" name="q4" value="C"> C</label>
+                        <label><input type="radio" name="q4" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q4_btn" class="btn-q-mark" onclick="requestCheck('q4')">?</button>
+                        <span id="q4_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 5 -->
+                <div class="question-row">
+                    <span class="q-num">5.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q5" value="A"> A</label>
+                        <label><input type="radio" name="q5" value="B"> B</label>
+                        <label><input type="radio" name="q5" value="C"> C</label>
+                        <label><input type="radio" name="q5" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q5_btn" class="btn-q-mark" onclick="requestCheck('q5')">?</button>
+                        <span id="q5_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- 題組二 -->
+            <div class="question-group">
+                <div class="question-group-header">
+                    <span>題組二 (第 6-7 題)</span>
+                    <button type="button" class="btn-primary"
+                        style="padding: 4px 12px; font-size: 0.95rem; border-radius: 4px;"
+                        onclick="requestGroupCheck('q6,q7')">一鍵檢查</button>
+                </div>
+
+                <!-- 6 -->
+                <div class="question-row">
+                    <span class="q-num">6.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q6" value="A"> A</label>
+                        <label><input type="radio" name="q6" value="B"> B</label>
+                        <label><input type="radio" name="q6" value="C"> C</label>
+                        <label><input type="radio" name="q6" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q6_btn" class="btn-q-mark" onclick="requestCheck('q6')">?</button>
+                        <span id="q6_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 7 -->
+                <div class="question-row">
+                    <span class="q-num">7.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q7" value="A"> A</label>
+                        <label><input type="radio" name="q7" value="B"> B</label>
+                        <label><input type="radio" name="q7" value="C"> C</label>
+                        <label><input type="radio" name="q7" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q7_btn" class="btn-q-mark" onclick="requestCheck('q7')">?</button>
+                        <span id="q7_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- 題組三 -->
+            <div class="question-group">
+                <div class="question-group-header">
+                    <span>題組三 (第 8-10 題)</span>
+                    <button type="button" class="btn-primary"
+                        style="padding: 4px 12px; font-size: 0.95rem; border-radius: 4px;"
+                        onclick="requestGroupCheck('q8,q9,q10')">一鍵檢查</button>
+                </div>
+
+                <!-- 8 -->
+                <div class="question-row">
+                    <span class="q-num">8.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q8" value="A"> A</label>
+                        <label><input type="radio" name="q8" value="B"> B</label>
+                        <label><input type="radio" name="q8" value="C"> C</label>
+                        <label><input type="radio" name="q8" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q8_btn" class="btn-q-mark" onclick="requestCheck('q8')">?</button>
+                        <span id="q8_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 9 -->
+                <div class="question-row">
+                    <span class="q-num">9.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q9" value="A"> A</label>
+                        <label><input type="radio" name="q9" value="B"> B</label>
+                        <label><input type="radio" name="q9" value="C"> C</label>
+                        <label><input type="radio" name="q9" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q9_btn" class="btn-q-mark" onclick="requestCheck('q9')">?</button>
+                        <span id="q9_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 10 -->
+                <div class="question-row">
+                    <span class="q-num">10.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q10" value="A"> A</label>
+                        <label><input type="radio" name="q10" value="B"> B</label>
+                        <label><input type="radio" name="q10" value="C"> C</label>
+                        <label><input type="radio" name="q10" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q10_btn" class="btn-q-mark" onclick="requestCheck('q10')">?</button>
+                        <span id="q10_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- 題組四 -->
+            <div class="question-group">
+                <div class="question-group-header">
+                    <span>題組四 (第 11-20 題)</span>
+                    <button type="button" class="btn-primary"
+                        style="padding: 4px 12px; font-size: 0.95rem; border-radius: 4px;"
+                        onclick="requestGroupCheck('q11,q12,q13,q14,q15,q16,q17,q18,q19,q20')">一鍵檢查</button>
+                </div>
+
+                <!-- 第 11-20 題：選擇題 -->
+
+                <!-- 11 -->
+                <div class="question-row">
+                    <span class="q-num">11.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q11" value="A"> A</label>
+                        <label><input type="radio" name="q11" value="B"> B</label>
+                        <label><input type="radio" name="q11" value="C"> C</label>
+                        <label><input type="radio" name="q11" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q11_btn" class="btn-q-mark" onclick="requestCheck('q11')">?</button>
+                        <span id="q11_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 12 -->
+                <div class="question-row">
+                    <span class="q-num">12.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q12" value="A"> A</label>
+                        <label><input type="radio" name="q12" value="B"> B</label>
+                        <label><input type="radio" name="q12" value="C"> C</label>
+                        <label><input type="radio" name="q12" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q12_btn" class="btn-q-mark" onclick="requestCheck('q12')">?</button>
+                        <span id="q12_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 13 -->
+                <div class="question-row">
+                    <span class="q-num">13.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q13" value="A"> A</label>
+                        <label><input type="radio" name="q13" value="B"> B</label>
+                        <label><input type="radio" name="q13" value="C"> C</label>
+                        <label><input type="radio" name="q13" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q13_btn" class="btn-q-mark" onclick="requestCheck('q13')">?</button>
+                        <span id="q13_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 14 -->
+                <div class="question-row">
+                    <span class="q-num">14.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q14" value="A"> A</label>
+                        <label><input type="radio" name="q14" value="B"> B</label>
+                        <label><input type="radio" name="q14" value="C"> C</label>
+                        <label><input type="radio" name="q14" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q14_btn" class="btn-q-mark" onclick="requestCheck('q14')">?</button>
+                        <span id="q14_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 15 -->
+                <div class="question-row">
+                    <span class="q-num">15.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q15" value="A"> A</label>
+                        <label><input type="radio" name="q15" value="B"> B</label>
+                        <label><input type="radio" name="q15" value="C"> C</label>
+                        <label><input type="radio" name="q15" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q15_btn" class="btn-q-mark" onclick="requestCheck('q15')">?</button>
+                        <span id="q15_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+
+                <!-- 16 -->
+                <div class="question-row">
+                    <span class="q-num">16.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q16" value="A"> A</label>
+                        <label><input type="radio" name="q16" value="B"> B</label>
+                        <label><input type="radio" name="q16" value="C"> C</label>
+                        <label><input type="radio" name="q16" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q16_btn" class="btn-q-mark" onclick="requestCheck('q16')">?</button>
+                        <span id="q16_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 17 -->
+                <div class="question-row">
+                    <span class="q-num">17.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q17" value="A"> A</label>
+                        <label><input type="radio" name="q17" value="B"> B</label>
+                        <label><input type="radio" name="q17" value="C"> C</label>
+                        <label><input type="radio" name="q17" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q17_btn" class="btn-q-mark" onclick="requestCheck('q17')">?</button>
+                        <span id="q17_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 18 -->
+                <div class="question-row">
+                    <span class="q-num">18.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q18" value="A"> A</label>
+                        <label><input type="radio" name="q18" value="B"> B</label>
+                        <label><input type="radio" name="q18" value="C"> C</label>
+                        <label><input type="radio" name="q18" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q18_btn" class="btn-q-mark" onclick="requestCheck('q18')">?</button>
+                        <span id="q18_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 19 -->
+                <div class="question-row">
+                    <span class="q-num">19.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q19" value="A"> A</label>
+                        <label><input type="radio" name="q19" value="B"> B</label>
+                        <label><input type="radio" name="q19" value="C"> C</label>
+                        <label><input type="radio" name="q19" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q19_btn" class="btn-q-mark" onclick="requestCheck('q19')">?</button>
+                        <span id="q19_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 20 -->
+                <div class="question-row">
+                    <span class="q-num">20.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q20" value="A"> A</label>
+                        <label><input type="radio" name="q20" value="B"> B</label>
+                        <label><input type="radio" name="q20" value="C"> C</label>
+                        <label><input type="radio" name="q20" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q20_btn" class="btn-q-mark" onclick="requestCheck('q20')">?</button>
+                        <span id="q20_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 題組五 -->
+            <div class="question-group">
+                <div class="question-group-header">
+                    <span>題組五</span>
+                    <button type="button" class="btn-primary"
+                        style="padding: 4px 12px; font-size: 0.95rem; border-radius: 4px;"
+                        onclick="requestGroupCheck('q21,q22,q231,q232')">一鍵檢查</button>
+                </div>
+
+                <!-- 21 -->
+                <div class="question-row" style="flex-direction: column; align-items: stretch; padding: 20px;">
+                    <div style="display: flex; width: 100%; align-items: center; margin-bottom: 15px;">
+                        <span class="q-num">21.</span>
+                        <span style="flex: 1; font-weight: bold;">請建構完整的化學反應式。
+                            (將下方化學式拖曳至反應區，系統將自動顯示平衡係數欄位)</span>
+                        <div class="check-wrapper">
+                            <button type="button" id="q21_btn" class="btn-q-mark"
+                                onclick="requestCheck('q21')">?</button>
+                            <span id="q21_denominator" class="score-denominator">/ 5</span>
+                        </div>
+                    </div>
+
+                    <span style="display: block; margin-bottom: 15px; color: var(--danger-color); font-weight: bold;">※
+                        註：請按照 C, H, O 順序輸入有機物（例如：CH2O）。</span>
+
+                    <div class="chem-builder">
+                        <div class="chem-input-area">
+                            <input type="text" id="chem_input" placeholder="建立素材 (例如: Na2CO3 或 CO3^2-)"
+                                style="max-width: 300px;">
+                            <button type="button" class="btn-secondary" onclick="addChemFormula()">新增化合物</button>
+                        </div>
+                        <div class="chem-pool" id="chem_pool" ondragover="allowDrop(event)" ondrop="dropToPool(event)">
+                            <div class="chem-pool-placeholder">素材區</div>
+                        </div>
+
+                        <div class="chem-equation-container" style="display: flex; gap: 15px; align-items: stretch;">
+                            <div class="chem-equation" style="flex: 1;">
+                                <div class="chem-zone reactants" id="reactants_zone" ondragover="allowDrop(event)"
+                                    ondrop="dropToZone(event, 'reactants')">
+                                </div>
+                                <div class="chem-arrow">➔</div>
+                                <div class="chem-zone products" id="products_zone" ondragover="allowDrop(event)"
+                                    ondrop="dropToZone(event, 'products')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chem-trash" id="chem_trash" ondragover="allowDrop(event)"
+                            ondrop="dropToTrash(event)">
+                            🗑️ 垃圾桶
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 22 -->
+                <div class="question-row">
+                    <span class="q-num">22.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q22" value="A"> A</label>
+                        <label><input type="radio" name="q22" value="B"> B</label>
+                        <label><input type="radio" name="q22" value="C"> C</label>
+                        <label><input type="radio" name="q22" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q22_btn" class="btn-q-mark" onclick="requestCheck('q22')">?</button>
+                        <span id="q22_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+
+                <!-- 23 -->
+                <div class="question-row">
+                    <span class="q-num">23.</span>
+                    <div style="display: flex; flex-direction: column; gap: 15px; flex: 1;">
+                        <!-- 23-1 -->
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="q231" class="fill-in-input" placeholder="二鉻酸鉀毫莫耳數" style="margin-right: 12px;">
+                            <span style="margin-right: 25px; font-weight: 500;"> mmol </span>
+                            <div class="check-wrapper">
+                                <button type="button" id="q231_btn" class="btn-q-mark" onclick="requestCheck('q231')">?</button>
+                                <span id="q231_denominator" class="score-denominator">/ 5</span>
+                            </div>
+                        </div>
+                
+                        <!-- 23-2 -->
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="q232" class="fill-in-input" placeholder="乙醚體積莫耳濃度" style="margin-right: 12px;">
+                            <span style="margin-right: 25px; font-weight: 500;"> mM </span>
+                            <div class="check-wrapper">
+                                <button type="button" id="q232_btn" class="btn-q-mark" onclick="requestCheck('q232')">?</button>
+                                <span id="q232_denominator" class="score-denominator">/ 5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 24 -->
+                <div class="question-row" style="align-items: center; padding: 20px;">
+                    <span class="q-num">24.</span>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px; flex: 1;">
+                        <div class="mc-options" style="margin-left: 0;">
+                            <label><input type="radio" name="q24_radio" value="是"> 是</label>
+                            <label><input type="radio" name="q24_radio" value="否"> 否</label>
+                        </div>
+                        <span style="margin: 0 10px; color: var(--border-color);">|</span>
+                        <input type="text" id="q24_text" class="fill-in-input" placeholder="COD值" style="width: 80px;">
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q24_btn" class="btn-q-mark" onclick="requestCheck('q24')">?</button>
+                        <span id="q24_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+                
+                <!-- 25 -->
+                <div class="question-row" style="align-items: center; padding: 20px;">
+                    <span class="q-num">25.</span>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px; flex: 1;">
+                        <div class="mc-options" style="margin-left: 0;">
+                            <label><input type="radio" name="q25_radio" value="正"> 正</label>
+                            <label><input type="radio" name="q25_radio" value="負"> 負</label>
+                        </div>
+                        <span style="margin: 0 10px; color: var(--border-color);">|</span>
+                        <input type="text" id="q25_text" class="fill-in-input" placeholder="COD值" style="width: 80px;">
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q25_btn" class="btn-q-mark" onclick="requestCheck('q25')">?</button>
+                        <span id="q25_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+                
+                <!-- 26 -->
+                <div class="question-row">
+                    <span class="q-num">26.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q26" value="A"> A</label>
+                        <label><input type="radio" name="q26" value="B"> B</label>
+                        <label><input type="radio" name="q26" value="C"> C</label>
+                        <label><input type="radio" name="q26" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q26_btn" class="btn-q-mark" onclick="requestCheck('q26')">?</button>
+                        <span id="q26_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+                
+                <!-- 27 -->
+                <div class="question-row">
+                    <span class="q-num">27.</span>
+                    <div class="mc-options">
+                        <label><input type="radio" name="q27" value="A"> A</label>
+                        <label><input type="radio" name="q27" value="B"> B</label>
+                        <label><input type="radio" name="q27" value="C"> C</label>
+                        <label><input type="radio" name="q27" value="D"> D</label>
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q27_btn" class="btn-q-mark" onclick="requestCheck('q27')">?</button>
+                        <span id="q27_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+                
+                <!-- 28 -->
+                <div class="question-row">
+                    <span class="q-num">28.</span>
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <input type="text" id="q28" class="fill-in-input" placeholder="數值">
+                    </div>
+                    <div class="check-wrapper">
+                        <button type="button" id="q28_btn" class="btn-q-mark" onclick="requestCheck('q28')">?</button>
+                        <span id="q28_denominator" class="score-denominator">/ 5</span>
+                    </div>
+                </div>
+                
+                <!-- 29 -->
+                <div class="question-row" style="flex-direction: column; align-items: flex-start; padding: 20px;">
+                    <div style="display: flex; width: 100%; align-items: center; margin-bottom: 15px;">
+                        <span class="q-num">29.</span>
+                        <span style="flex: 1; font-weight: 500;">請依序作答下列五題選擇題：</span>
+                        <div class="check-wrapper">
+                            <button type="button" id="q29_btn" class="btn-q-mark" onclick="requestCheck('q29')">?</button>
+                            <span id="q29_denominator" class="score-denominator">/ 5</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 30px;">
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 15px; font-weight: 500;">(1)</span>
+                            <div class="mc-options" style="margin-left: 0;">
+                                <label><input type="radio" name="q29_1" value="A"> A</label>
+                                <label><input type="radio" name="q29_1" value="B"> B</label>
+                                <label><input type="radio" name="q29_1" value="C"> C</label>
+                                <label><input type="radio" name="q29_1" value="D"> D</label>
+                                <label><input type="radio" name="q29_1" value="E"> E</label>
+                                <label><input type="radio" name="q29_1" value="F"> F</label>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 15px; font-weight: 500;">(2)</span>
+                            <div class="mc-options" style="margin-left: 0;">
+                                <label><input type="radio" name="q29_2" value="A"> A</label>
+                                <label><input type="radio" name="q29_2" value="B"> B</label>
+                                <label><input type="radio" name="q29_2" value="C"> C</label>
+                                <label><input type="radio" name="q29_2" value="D"> D</label>
+                                <label><input type="radio" name="q29_2" value="E"> E</label>
+                                <label><input type="radio" name="q29_2" value="F"> F</label>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 15px; font-weight: 500;">(3)</span>
+                            <div class="mc-options" style="margin-left: 0;">
+                                <label><input type="radio" name="q29_3" value="A"> A</label>
+                                <label><input type="radio" name="q29_3" value="B"> B</label>
+                                <label><input type="radio" name="q29_3" value="C"> C</label>
+                                <label><input type="radio" name="q29_3" value="D"> D</label>
+                                <label><input type="radio" name="q29_3" value="E"> E</label>
+                                <label><input type="radio" name="q29_3" value="F"> F</label>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 15px; font-weight: 500;">(4)</span>
+                            <div class="mc-options" style="margin-left: 0;">
+                                <label><input type="radio" name="q29_4" value="A"> A</label>
+                                <label><input type="radio" name="q29_4" value="B"> B</label>
+                                <label><input type="radio" name="q29_4" value="C"> C</label>
+                                <label><input type="radio" name="q29_4" value="D"> D</label>
+                                <label><input type="radio" name="q29_4" value="E"> E</label>
+                                <label><input type="radio" name="q29_4" value="F"> F</label>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 15px; font-weight: 500;">(5)</span>
+                            <div class="mc-options" style="margin-left: 0;">
+                                <label><input type="radio" name="q29_5" value="A"> A</label>
+                                <label><input type="radio" name="q29_5" value="B"> B</label>
+                                <label><input type="radio" name="q29_5" value="C"> C</label>
+                                <label><input type="radio" name="q29_5" value="D"> D</label>
+                                <label><input type="radio" name="q29_5" value="E"> E</label>
+                                <label><input type="radio" name="q29_5" value="F"> F</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <!-- 30 -->
+                <div class="question-row">
+                    <span class="q-num">30.</span>
+                    <div style="display: flex; flex-direction: column; gap: 15px; flex: 1;">
+                        <!-- 30-1 -->
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="q301" class="fill-in-input" placeholder="Fe²⁺ 濃度" style="margin-right: 12px;">
+                            <span style="margin-right: 25px; font-weight: 500;"> mM </span>
+                            <div class="check-wrapper">
+                                <button type="button" id="q301_btn" class="btn-q-mark" onclick="requestCheck('q301')">?</button>
+                                <span id="q301_denominator" class="score-denominator">/ 5</span>
+                            </div>
+                        </div>
+                
+                        <!-- 30-2 -->
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="q302" class="fill-in-input" placeholder="Fe³⁺ 濃度" style="margin-right: 12px;">
+                            <span style="margin-right: 25px; font-weight: 500;"> mM </span>
+                            <div class="check-wrapper">
+                                <button type="button" id="q302_btn" class="btn-q-mark" onclick="requestCheck('q302')">?</button>
+                                <span id="q302_denominator" class="score-denominator">/ 5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="action-section">
+                <button id="submit_btn" class="btn-primary" onclick="submitExam()">確認交卷</button>
+                <span id="status_message" class="status-msg"></span>
+            </div>
+        </section>
+    </div>
+
+    <!-- 系統對話框 1：開考規則說明 -->
+    <div id="rule_modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>作答規範與系統說明</h3>
+            <p>測驗已正式開始。系統包含以下兩大檢驗機制：</p>
+            <ul>
+                <li><strong>1: 選擇題確認機制</strong></li>
+                <li><strong>2: 填充/化學題確認機制</strong></li>
+            </ul>
+            <p>請留意以下操作規範：</p>
+            <ul>
+                <li><strong>實時檢驗：</strong>點擊右側 <strong style="color: var(--primary-color);">[ ? ]</strong> 方框可立即檢驗並結算分數。
+                </li>
+                <li><strong>扣分邏輯：</strong>
+                    <ul>
+                        <li>填充/化學題：每次檢驗錯誤扣 1 分。</li>
+                        <li>選擇題：基礎滿分為 5 分，檢驗錯誤時得分將依序降為 2 分、1 分、0 分。</li>
+                    </ul>
+                </li>
+                <li><strong>化學式輸入規範：請按照 C、H、O 順序輸入有機物。</strong></li>
+            </ul>
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button class="btn-primary" onclick="closeRuleModal()">我已了解，開始作答</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系統對話框 2：首次檢驗確認 -->
+    <div id="confirm_modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>系統規則確認</h3>
+            <p>按下確認後將立即檢驗您的答案。每次檢驗錯誤將遞減本題之最高可能得分，是否確認進行檢驗？</p>
+            <div class="modal-actions">
+                <label
+                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted); font-size: 0.95rem;">
+                    <input type="checkbox" id="skip_confirm_cb"> 不再顯示確認訊息
+                </label>
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn-secondary" onclick="closeConfirmModal()">取消</button>
+                    <button class="btn-primary" onclick="confirmCheck()">確認檢驗</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系統對話框 3：一般狀態提示 -->
+    <div id="alert_modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="alert_title">系統提示</h3>
+            <p id="alert_message" style="white-space: pre-line;"></p>
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button class="btn-primary" onclick="closeAlertModal()">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

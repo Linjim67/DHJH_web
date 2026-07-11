@@ -1,0 +1,474 @@
+/* 基礎重置與變數設定 */
+:root {
+    --primary-color: #0056b3;
+    --background-color: #f4f7f6;
+    --card-bg: #ffffff;
+    --text-main: #333333;
+    --text-muted: #666666;
+    --border-color: #dddddd;
+    --success-color: #28a745;
+    --danger-color: #d9534f;
+}
+
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.system-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.system-header p {
+    color: var(--text-muted);
+}
+
+/* 卡片式佈局 */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card h2 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+    font-size: 1.2rem;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+/* 表單元素設計 */
+.form-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-right: 50px;
+}
+
+.form-group label {
+    font-weight: bold;
+    width: 140px;
+    margin-bottom: 0;
+    margin-right: 15px;
+    text-align: right;
+}
+
+input[type="text"],
+input[type="password"],
+textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px rgba(0, 86, 179, 0.2);
+}
+
+/* 題組區塊佈局 (Question Group) */
+.question-group {
+    background-color: #fafafa;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.question-group-header {
+    background-color: #f0f4f8;
+    color: var(--primary-color);
+    font-weight: bold;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 單行題目佈局 (Single Line Row) */
+.question-row {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.question-row:last-child {
+    border-bottom: none;
+}
+
+.question-row:hover {
+    background-color: #ffffff;
+}
+
+.q-num {
+    font-weight: bold;
+    width: 35px;
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+/* 選擇題選項佈局 */
+.mc-options {
+    display: flex;
+    gap: 35px;
+    flex: 1;
+    margin-left: 10px;
+}
+
+.mc-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 1.05rem;
+    margin-bottom: 0;
+}
+
+/* 化學反應式建構區塊 */
+.chem-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chem-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+.chem-pool {
+    min-height: 60px;
+    border: 2px dashed #b3d4fc;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    background-color: #f8fbff;
+    align-items: center;
+}
+
+.chem-pool-placeholder {
+    color: #999;
+    font-size: 0.9rem;
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+}
+
+.chem-equation {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: #fff;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.chem-zone {
+    flex: 1;
+    min-height: 80px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    background-color: #fafbfc;
+}
+
+.chem-arrow {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.chem-term {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: grab;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    user-select: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.chem-term:active {
+    cursor: grabbing;
+}
+
+.chem-term.correct-term {
+    border-color: var(--success-color);
+    background-color: #f0fff0;
+}
+
+.chem-term.wrong-term {
+    border-color: var(--danger-color);
+    background-color: #fff0f0;
+}
+
+.chem-coeff {
+    width: 45px;
+    margin-right: 8px;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.chem-coeff.correct-coeff {
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.chem-coeff.wrong-coeff {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.chem-formula {
+    font-size: 1.1rem;
+    font-weight: bold;
+    font-family: "Times New Roman", Times, serif;
+}
+
+/* 縮小垃圾桶樣式 */
+.chem-trash {
+    border: 2px dashed var(--danger-color);
+    background-color: #fff5f5;
+    color: var(--danger-color);
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    transition: background-color 0.2s;
+}
+
+.chem-trash:hover {
+    background-color: #ffeaea;
+}
+
+
+/* 填充題輸入佈局 */
+.fill-in-input {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.check-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+/* 檢驗按鈕 (方框) */
+.btn-q-mark {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--primary-color);
+    background-color: white;
+    color: var(--primary-color);
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+}
+
+.btn-q-mark:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-q-mark.correct {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    cursor: default;
+}
+
+.btn-q-mark.wrong {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+    cursor: default;
+}
+
+/* 按鈕與狀態訊息 */
+.action-section {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #004494;
+}
+
+.btn-primary:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.status-msg {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+/* 客製化對話框 (Modal) 樣式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal-overlay.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.modal-content ul {
+    padding-left: 20px;
+    margin-bottom: 20px;
+}
+
+.modal-content li {
+    margin-bottom: 8px;
+}
+
+/* 視圖狀態與等候室佈局 */
+.hidden {
+    display: none !important;
+}
+
+#waiting_section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+#waiting_section .hidden {
+    display: none !important;
+}
+
+/* 獨立配置標題底線長度 */
+#login_section h2 {
+    display: table;
+    margin: 0 auto 20px auto;
+    padding: 0 40px 10px 40px;
+}
+
+#waiting_section h2 {
+    display: table;
+    margin: 0 auto 20px auto;
+    padding: 0 60px 10px 60px;
+}
+
+/* 縮減文字與計時器之垂直間距 */
+#waiting_section p {
+    margin-bottom: 5px;
+}
+
+#countdown_timer {
+    margin-top: 0 !important;
+}
