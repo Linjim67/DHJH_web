@@ -198,26 +198,35 @@
     </main>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {getFirestore, doc, setDoc, getDoc} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
         // 1. Firebase 初始化設定
         // ==========================================
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dhjh-summer-camp';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const appId = 'dhjh-summer-camp';
 
-        // 初始化環境安全驗證 (為確保資料庫安全，需先取得基本連線權限)
-        async function initAuth() {
-            if (typeof __initial_auth_token !== 'undefined') {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
+        // 請將下方大括號內的內容，替換成您在 Firebase 後台複製的真實金鑰！
+        const firebaseConfig = {
+            apiKey: "763721572642",
+            authDomain: "dhjhweb.firebaseapp.com",
+            projectId: "dhjhweb",
+            storageBucket: "dhjhweb.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdefg"
+        };
+
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // 移除沙盒環境驗證，改為標準的匿名登入初始化
+            async function initAuth() {
+            try {
                 await signInAnonymously(auth);
+            } catch (error) {
+                console.error("匿名登入失敗:", error);
             }
         }
         initAuth();
