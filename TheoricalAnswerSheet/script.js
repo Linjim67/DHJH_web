@@ -64,33 +64,22 @@ const EXAM_CONFIG = {
     enableTimeCheck: false   // 是否啟用時間限制 (true: 啟用 / false: 關閉)
 };
 
-function verifyLogin() {
-    const studentIdEl = document.getElementById('student_id');
-    const passwordEl = document.getElementById('password') || document.querySelector('input[type="password"]');
-    if (!studentIdEl) return;
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-    const studentId = studentIdEl.value?.trim();
-    if (!studentId) {
-        showAlert("系統提示", "請輸入學號");
+// ... (您的 Firebase 初始化 app 等程式碼保留在上方) ...
+const auth = getAuth(app);
+
+/**
+ * 接收到 Firebase 登入狀態後，執行考卷專屬的檢查（交卷紀錄、開考時間）
+ */
+function unlockExam(uid, displayName) {
+    // 1. 登入前檢查是否已經交過卷 (把原本的 studentId 換成更安全的 Firebase UID)
+    if (localStorage.getItem('exam_submitted_' + uid) === 'true') {
+        showAlert("拒絕存取", `考生 ${displayName} 已經完成本次測驗交卷，無法再次進入作答介面！`);
         return;
     }
 
-    // 強制密碼驗證
-    if (passwordEl) {
-        const pwd = passwordEl.value?.trim();
-        if (pwd !== EXAM_CONFIG.password) {
-            showAlert("登入失敗", "測驗密碼錯誤！請確認後再試。");
-            return; // 密碼錯誤，直接中斷
-        }
-    }
-
-    // 登入前檢查是否已經交過卷
-    if (localStorage.getItem('exam_submitted_' + studentId) === 'true') {
-        showAlert("拒絕存取", `學號 ${studentId} 已經完成本次測驗交卷，無法再次進入作答介面！`);
-        return;
-    }
-
-    // 【新增】：開考時間閘門 (改為彈出警告框阻擋)
+    // 2. 開考時間閘門 (完美保留您原本的邏輯)
     if (EXAM_CONFIG.enableTimeCheck) {
         const now = new Date();
         const [targetHours, targetMinutes] = EXAM_CONFIG.startTime.split(':').map(Number);
@@ -108,27 +97,29 @@ function verifyLogin() {
 
             let timeText = h > 0 ? `${h} 小時 ${m} 分 ${s} 秒` : `${m} 分 ${s} 秒`;
 
-            // 呼叫類似密碼錯誤的系統彈窗阻擋登入
-            showAlert("⏳ 測驗尚未開始", `統一開考時間為 ${EXAM_CONFIG.startTime}。\n\n距離開考還剩下：${timeText}\n請稍後再重新點擊登入！`);
+            // 阻擋進入
+            showAlert("⏳ 測驗尚未開始", `統一開考時間為 ${EXAM_CONFIG.startTime}。\n\n距離開考還剩下：${timeText}\n請稍後再重新整理網頁！`);
             return; // 直接中斷，不解鎖畫面
         }
     }
 
-    // 儲存學號至全域變數
-    window.currentStudentId = studentId;
-    console.log("系統：登入程序觸發");
+    // 3. 儲存考生資訊至全域變數 (原本存學號，現在存 UID 與名稱)
+    window.currentStudentId = uid;
+    window.currentStudentName = displayName;
+    console.log(`系統：考生 ${displayName} 驗證成功`);
 
-    // 切換畫面
+    // 4. 切換畫面 (隱藏歡迎區，顯示考卷)
+    // 註：您的 login_section 現在可以改成純粹顯示「系統載入中...」或測驗說明的區塊
     const loginSection = document.getElementById('login_section') || document.querySelector('.login-section');
     const examSection = document.getElementById('exam_section');
 
-    if (loginSection) loginSection.style.display = 'none'; // 隱藏登入區
+    if (loginSection) loginSection.style.display = 'none';
     if (examSection) {
-        examSection.style.display = 'block'; // 顯示考卷區
+        examSection.style.display = 'block';
         examSection.classList.remove('hidden');
     }
 
-    // 載入先前的作答暫存 (若有)
+    // 5. 載入先前的作答暫存 (若有)
     if (typeof loadDraft === 'function') {
         try {
             loadDraft();
@@ -137,8 +128,34 @@ function verifyLogin() {
         }
     }
 
-    console.log("系統：登入成功，介面已解鎖");
+    console.log("系統：介面已解鎖，開始作答");
 }
+
+// ==========================================
+// 🚨 系統入口：監聽從母網站傳過來的登入狀態
+// ==========================================
+onAuthStateChanged(auth, (user) => {
+    // 確認有使用者，且不是匿名登入
+    if (user && !user.isAnonymous) {
+        // 抓取 Google 帳號的名稱 (如果沒有就用信箱前綴)
+        const displayName = user.displayName || user.email.split('@')[0];
+
+        // 觸發考卷解鎖機制
+        unlockExam(user.uid, displayName);
+
+    } else {
+        // 如果學生想偷跑，直接打開子網站的網址，就會被這段擋住！
+        document.body.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f9fa; font-family: sans-serif; color: #d93025; text-align: center;">
+                <div>
+                    <h1 style="font-size: 48px; margin-bottom: 10px;">🛡️</h1>
+                    <h2>拒絕存取</h2>
+                    <p>請先從主網站右上角登入系統，再進入此作答區。</p>
+                </div>
+            </div>
+        `;
+    }
+});
 
 function setupAutoSave() {
     try {
