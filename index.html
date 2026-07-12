@@ -147,15 +147,14 @@
                         </button>
                     </div>
 
+                    <!-- 紅色警告框 (保留並確保完美置中) -->
                     <div id="auth-error"
-                        class="hidden mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
+                        class="hidden mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center justify-center text-center gap-2">
                         <span class="material-symbols-outlined text-base">error</span>
                         <span id="auth-error-text">錯誤訊息</span>
                     </div>
 
-                    <p class="text-gray-500 text-sm mb-6 text-center">請使用您的 Google 帳號進行登入</p>
-
-                    <!-- Google 登入按鈕 -->
+                    <!-- Google 登入按鈕 (已將上方的灰色文字徹底刪除) -->
                     <button id="google-login-btn"
                         class="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98]">
                         <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -243,7 +242,7 @@
                 const title = item.getAttribute('data-title');
                 const src = item.getAttribute('data-src');
 
-                // 權限守衛：如果點擊的不是首頁，且「尚未登入」
+                // 🛑 權限守衛：如果點擊的不是首頁，且「尚未登入」
                 if (pageId !== 'home' && !currentUser) {
                     showError("請先登入系統才能進入該頁面喔！");
                     openModal();
@@ -317,12 +316,11 @@
             googleLoginBtn.disabled = true;
 
             try {
-                // 彈出 Google 登入視窗
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
 
-                // (選用) 將使用者基本資料存入資料庫
-                const userRef = doc(db, 'users', user.uid);
+                // 🛑 修正這裡！將存檔路徑改為符合您安全性規則的階層
+                const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
                 await setDoc(userRef, {
                     name: user.displayName,
                     email: user.email,
