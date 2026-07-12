@@ -64,14 +64,26 @@ const EXAM_CONFIG = {
     enableTimeCheck: false   // 是否啟用時間限制 (true: 啟用 / false: 關閉)
 };
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// ... (您的 Firebase 初始化 app 等程式碼保留在上方) ...
+const firebaseConfig = {
+    apiKey: "AIzaSyAZ7cCQlXh8oiNzwnT2LL07KPt5TMaI2d8",
+    authDomain: "dhjhweb.firebaseapp.com",
+    projectId: "dhjhweb",
+    storageBucket: "dhjhweb.firebasestorage.app",
+    messagingSenderId: "763721572642",
+    appId: "1:763721572642:web:fee3751366cba01bc0c57b",
+    measurementId: "G-9CM3NBLLLS"
+};
+
+// 2. 初始化 Firebase (這三行就是解決 app is not defined 的關鍵)
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-/**
- * 接收到 Firebase 登入狀態後，執行考卷專屬的檢查（交卷紀錄、開考時間）
- */
+
 function unlockExam(uid, displayName) {
     // 1. 登入前檢查是否已經交過卷 (把原本的 studentId 換成更安全的 Firebase UID)
     if (localStorage.getItem('exam_submitted_' + uid) === 'true') {

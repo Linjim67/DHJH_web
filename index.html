@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>暑期化學營學習平台</title>
+    <title>資源專區</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -75,23 +75,23 @@
         </div>
 
         <div class="flex-1 overflow-y-auto flex flex-col gap-1">
-            <div class="sidebar-item active" data-page="home" data-title="首頁儀表板">
-                <span class="material-symbols-outlined">home</span> 首頁儀表板
+            <div class="sidebar-item active" data-page="home" data-title="首頁" data-show="true">
+                <span class="material-symbols-outlined">home</span> 首頁
             </div>
-            <div class="sidebar-item" data-page="notes" data-title="暑期講義">
-                <span class="material-symbols-outlined">menu_book</span> 暑期講義
+            <div class="sidebar-item" data-page="notes" data-title="暑期講義題目" data-show="true">
+                <span class="material-symbols-outlined">menu_book</span> 暑期講義題目
             </div>
-            <div class="sidebar-item" data-page="exam-paper" data-title="暑期理論試卷">
-                <span class="material-symbols-outlined">description</span> 暑期理論試卷
+            <div class="sidebar-item" data-page="exam-paper" data-title="暑期課程錄影" data-show="false">
+                <span class="material-symbols-outlined">description</span> 暑期課程錄影
             </div>
             <div class="sidebar-item" data-page="exam-answer" data-title="暑期理論作答"
-                data-src="TheoricalAnswerSheet/index.html">
+                data-src="TheoricalAnswerSheet/index.html" data-show="true">
                 <span class="material-symbols-outlined">edit_square</span> 暑期理論作答
             </div>
-            <div class="sidebar-item" data-page="transcript" data-title="暑期成績單">
+            <div class="sidebar-item" data-page="transcript" data-title="暑期成績單" data-show="false">
                 <span class="material-symbols-outlined">analytics</span> 暑期成績單
             </div>
-            <div class="sidebar-item" data-page="auction" data-title="暑期競標">
+            <div class="sidebar-item" data-page="auction" data-title="暑期競標" data-show="true">
                 <span class="material-symbols-outlined">gavel</span> 暑期競標
             </div>
         </div>
@@ -106,7 +106,7 @@
                 <button id="mobile-menu-btn" class="md:hidden p-2 rounded-full hover:bg-gray-100 text-gray-600">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <h2 id="page-title" class="text-lg font-medium text-gray-800">首頁儀表板</h2>
+                <h2 id="page-title" class="text-lg font-medium text-gray-800">首頁</h2>
             </div>
 
             <div>
@@ -219,14 +219,17 @@
                     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
                 </head>
                 <body class="p-8 bg-[#f8fafc] text-gray-800 font-sans m-0 h-screen flex flex-col">
-                    <h1 class="text-3xl font-bold mb-2">歡迎來到暑期化學營 👋</h1>
+                    <h1 class="text-3xl font-bold mb-2">歡迎來到：敦化國中資優班  化學科補充資源專區</h1>
                     <p class="text-gray-500 mb-8">這是您的學習總部。請先於右上角登入後，再點擊左側選單進入各項功能。</p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="p-6 bg-white rounded-[24px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                            <span class="material-symbols-outlined text-blue-500 mb-2" style="font-size: 32px;">campaign</span>
-                            <h3 class="text-lg font-bold text-gray-800">最新公告</h3>
-                            <p class="text-gray-600 mt-2 text-sm leading-relaxed">
+                            <!-- 新增 flex 容器讓 icon 和標題並排 -->
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="material-symbols-outlined text-blue-500" style="font-size: 28px;">campaign</span>
+                                <h3 class="text-lg font-bold text-gray-800 m-0">最新公告</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm leading-relaxed">
                                 系統已全面升級為模組化架構！<br>現在全面支援 Google 帳號一鍵登入，作答更安全。
                             </p>
                         </div>
@@ -242,7 +245,6 @@
                 const title = item.getAttribute('data-title');
                 const src = item.getAttribute('data-src');
 
-                // 🛑 權限守衛：如果點擊的不是首頁，且「尚未登入」
                 if (pageId !== 'home' && !currentUser) {
                     showError("請先登入系統才能進入該頁面喔！");
                     openModal();
