@@ -111,9 +111,10 @@
             </div>
             <div class="flex items-center gap-6">
                 <div class="text-center">
-                    <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">實作分數</div>
-                    <div id="practical-score" class="text-3xl font-bold text-emerald-600">--</div>
+                    <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論總分</div>
+                    <div id="theory-total-score" class="text-3xl font-bold text-emerald-600">--</div>
                 </div>
+                <div class="w-px h-10 bg-gray-200"></div>
                 <div class="w-px h-10 bg-gray-200"></div>
                 <div class="text-center">
                     <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
@@ -233,7 +234,7 @@
         // ==========================================
         function renderTranscript(studentData, publicData) {
             document.getElementById('total-students').innerText = publicData.totalStudents;
-            document.getElementById('practical-score').innerText = studentData.practicalScore || 0;
+            document.getElementById('theory-total-score').innerText = studentData.theoryTotalScore || 0;
 
             const container = document.getElementById('theory-container');
             container.innerHTML = ''; // 清空
@@ -411,8 +412,58 @@
             "Part2": { title: "第二大題", questions: ["6", "7"], maxScore: 10 },
             "Part3": { title: "第三大題", questions: ["8", "9", "10"], maxScore: 15 },
             "Part4": { title: "第四大題", questions: Array.from({ length: 10 }, (_, i) => (i + 11).toString()), maxScore: 50 },
-            "Part5": { title: "第五大題", questions: Array.from({ length: 10 }, (_, i) => (i + 21).toString()), maxScore: 50 }
+            "Part5": {
+                title: "第五大題",
+                questions: ["21", "22", "23-1", "23-2", "24", "25", "26", "27", "28", "29", "30-1", "30-2"],
+                maxScore: 60
+            }
         };
+
+        function generateFakePublicData() {
+            const fakeData = {
+                totalStudents: 156, // 假裝有 156 人交卷
+                groups: {
+                    "Part1": {
+                        title: "第一大題", maxScore: 25,
+                        mean: 18.5, median: 20, high: 25, low: 5, uq: 25, lq: 15,
+                        questions: ["1", "2", "3", "4", "5"]
+                    },
+                    "Part2": {
+                        title: "第二大題", maxScore: 10,
+                        mean: 7.2, median: 10, high: 10, low: 0, uq: 10, lq: 5,
+                        questions: ["6", "7"]
+                    },
+                    "Part3": {
+                        title: "第三大題", maxScore: 15,
+                        mean: 9.8, median: 10, high: 15, low: 0, uq: 15, lq: 5,
+                        questions: ["8", "9", "10"]
+                    },
+                    "Part4": {
+                        title: "第四大題", maxScore: 50,
+                        mean: 32.5, median: 35, high: 50, low: 10, uq: 40, lq: 25,
+                        questions: Array.from({ length: 10 }, (_, i) => (i + 11).toString())
+                    },
+                    "Part5": {
+                        title: "第五大題", maxScore: 60,
+                        mean: 38.4, median: 40, high: 60, low: 15, uq: 50, lq: 30,
+                        questions: ["21", "22", "23-1", "23-2", "24", "25", "26", "27", "28", "29", "30-1", "30-2"]
+                    }
+                },
+                questions: {}
+            };
+
+        // 自動產生 1~30 題的單題假數據
+        const allQuestionIds = Object.values(QUESTION_GROUPS).flatMap(group => group.questions);
+
+        allQuestionIds.forEach(qId => {
+                fakeData.questions[qId] = {
+                    mean: +(3.2 + (Math.random() * 1.5 - 0.7)).toFixed(1),
+                    median: 4, high: 5, low: 0, uq: 5, lq: 2
+                };
+            });
+
+            return fakeData;
+        }
 
         if (!auth) {
             document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Firebase 初始化失敗，請檢查金鑰設定。</p>`;
@@ -451,49 +502,39 @@
 
                     const rawStudentData = myResultSnap.data();
                     const theoryScores = rawStudentData.theoryScores || {};
-
-                    // 前端動態計算各大題得分 (因為交卷時只存了單題分數)
+                    /* STREAMING_CHUNK:前端動態加總學生的各題得分為總分 */
+                    // 前端動態計算各大題得分與理論總分
+                    let theoryTotalScore = 0;
                     const groupScores = {};
                     Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
-                        groupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (theoryScores[qId] || 0), 0);
+                        groupScores[groupId] = groupInfo.questions.reduce((sum, qId) => {
+                            const score = theoryScores[qId] || 0;
+                            theoryTotalScore += score;
+                            return sum + score;
+                        }, 0);
                     });
 
                     const studentData = {
-                        practicalScore: rawStudentData.practicalScore || '--', // 未來若有實作成績可接上
+                        theoryTotalScore: theoryTotalScore,
                         theoryScores: theoryScores,
                         groupScores: groupScores
                     };
 
+                    /* STREAMING_CHUNK:判斷作答人數來決定使用真實或模擬數據 */
                     // ----------------------------------------------------
                     // 2. 取得全班統計資料 (Public Data)
                     // ----------------------------------------------------
-                    // 注意：路徑符合您設定的公開規則 match /public_data/{docId}
                     const publicStatsRef = doc(db, 'public_data', 'theory_test_1_stats');
                     const publicStatsSnap = await getDoc(publicStatsRef);
 
                     let publicData;
-                    if (publicStatsSnap.exists()) {
+                    if (publicStatsSnap.exists() && publicStatsSnap.data().totalStudents > 1) {
+                        // 有真實資料，且作答人數大於 1 時，使用真實平均計算
                         publicData = publicStatsSnap.data();
                     } else {
-                        // 【防呆機制】如果老師尚未上傳全班統計，自動產生預設的「空殼資料」避免畫面崩潰
-                        console.warn("尚未建立全班統計資料，使用預設圖表。");
-                        publicData = {
-                            totalStudents: 0,
-                            groups: {},
-                            questions: {}
-                        };
-
-                        Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
-                            publicData.groups[groupId] = {
-                                title: groupInfo.title, maxScore: groupInfo.maxScore,
-                                mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0,
-                                questions: groupInfo.questions
-                            };
-                        });
-
-                        for (let i = 1; i <= 30; i++) {
-                            publicData.questions[i.toString()] = { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0 };
-                        }
+                        // 若沒有資料，或是作答人數只有 0 或 1 人，採用「掰的」平均分數
+                        console.warn("作答人數 ≤ 1，系統自動採用模擬常態分佈資料。");
+                        publicData = generateFakePublicData();
                     }
 
                     // ----------------------------------------------------
