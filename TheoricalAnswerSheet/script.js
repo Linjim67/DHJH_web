@@ -935,11 +935,17 @@ function closeAlertModal() {
 }
 
 // ==========================================
-// 模組八：系統交卷傳輸
+// 模組八：系統交卷傳輸 (已串接 Firebase)
 // ==========================================
 async function submitExam() {
     const btn = document.getElementById('submit_btn');
     const statusMsg = document.getElementById('status_message');
+
+    // 防呆：確認是否抓得到學生的 UID
+    if (!window.currentStudentId) {
+        showAlert("錯誤", "找不到您的登入身分，請重新整理網頁後再試。");
+        return;
+    }
 
     const getRadioValue = (name) => {
         const el = document.querySelector(`input[name="${name}"]:checked`);
@@ -947,7 +953,7 @@ async function submitExam() {
     };
 
     const payload = {
-        student_id: currentStudentId,
+        student_id: window.currentStudentId,
         exam_id: "26T",
         total_score: 0,
         answers: {
@@ -963,12 +969,12 @@ async function submitExam() {
 
     let totalScore = 0;
 
-    // 動態寫入所有題目的作答資料與分數
+    // 動態寫入所有題目的作答資料與分數 (精簡為一個迴圈)
     Object.keys(questionStates).forEach(qId => {
-        // 【新增】：取得單題得分 (完全正確才給當下剩餘的 maxPoints，否則 0 分)
+        // 取得單題得分
         const earnedPoints = questionStates[qId].isCorrect ? questionStates[qId].maxPoints : 0;
-        payload.scores[qId] = earnedPoints; // 寫入單題得分
-        totalScore += earnedPoints;         // 累加至總分
+        payload.scores[qId] = earnedPoints;
+        totalScore += earnedPoints;
 
         if (qId === 'q21') return; // 化學題已單獨處理
 
@@ -988,62 +994,47 @@ async function submitExam() {
         }
     });
 
-    // 將累加完成的總分寫回 payload 中
     payload.total_score = totalScore;
 
-    Object.keys(questionStates).forEach(qId => {
-        payload.scores[qId] = questionStates[qId].isCorrect ? questionStates[qId].maxPoints : 0;
-
-        if (qId === 'q21') return;
-
-        const qState = questionStates[qId];
-        if (qState.type === 'mcq') {
-            payload.answers[qId] = getRadioValue(qId);
-        } else if (qState.type === 'fill-in') {
-            payload.answers[qId] = document.getElementById(qId)?.value || "";
-        } else if (qState.type === 'mixed') {
-            payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
-            payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
-        } else if (qState.type === 'multi-mcq') {
-            payload.answers[qId] = [];
-            for (let i = 0; i < qState.correctAnswer.length; i++) {
-                payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
-            }
-        }
-    });
-
     try {
-        // 【新增】：標記該學號已交卷，並清除暫存草稿
-        localStorage.setItem('exam_submitted_' + currentStudentId, 'true');
-        localStorage.removeItem('exam_draft');
-
-        // 【新增】：將畫面替換為交卷成功提示，防止繼續操作考卷
-        const examSection = document.getElementById('exam_section');
-        if (examSection) {
-            examSection.innerHTML = '<div style="text-align:center; padding: 100px 20px;"><h2 style="color: var(--primary-color);">✅ 測驗已結束，交卷成功！</h2><p style="color: var(--on-surface-de-emphasis); margin-top: 15px; font-size: 1.1rem;">您的成績與作答紀錄已安全送出，請關閉此網頁。</p></div>';
-        }
-
         if (btn) {
             btn.disabled = true;
             btn.innerText = "傳送中...";
         }
         if (statusMsg) {
-            statusMsg.innerText = "正在將您的答案傳送至伺服器...";
+            statusMsg.innerText = "正在將您的答案與成績上傳至伺服器...";
             statusMsg.style.color = "var(--primary-color)";
         }
 
-        // Mock API Request (Replace with real fetch)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // ==========================================
+        // 🚀 真實 Firebase 上傳邏輯
+        // 路徑: artifacts/dhjh-summer-camp/users/{uid}/exam_results/theory_test_1
+        // ==========================================
+        // 注意：請確保檔案最上方有 import { doc, setDoc } 和宣告 db
+        const resultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', window.currentStudentId, 'exam_results', 'theory_test_1');
+
+        await setDoc(resultRef, {
+            score: totalScore,                     // 總分
+            theoryScores: payload.scores,          // 每題的各別得分 (成績單的 Box Plot 就是讀這個！)
+            answers: payload.answers,              // 學生的原始作答選項 (老師備查用)
+            submitTime: new Date().toISOString(),  // 交卷時間
+            studentName: window.currentStudentName || "未知學生" // 學生名稱
+        }, { merge: true });
+
+        // 上傳成功後的畫面處理
+        localStorage.setItem('exam_submitted_' + window.currentStudentId, 'true');
+        localStorage.removeItem('exam_draft');
+
+        const examSection = document.getElementById('exam_section');
+        if (examSection) {
+            examSection.innerHTML = '<div style="text-align:center; padding: 100px 20px;"><h2 style="color: var(--primary-color);">✅ 測驗已結束，交卷成功！</h2><p style="color: var(--on-surface-de-emphasis); margin-top: 15px; font-size: 1.1rem;">您的成績與作答紀錄已安全送出，請關閉此網頁並前往「暑期成績單」查看結果。</p></div>';
+        }
 
         if (statusMsg) {
             statusMsg.innerText = "交卷成功！感謝您的作答。";
             statusMsg.style.color = "var(--positive)";
         }
-        if (btn) {
-            btn.innerText = "已交卷";
-        }
-        showAlert("系統提示", "交卷成功！您的作答已經被記錄。");
-        localStorage.removeItem('exam_draft');
+
     } catch (e) {
         console.error("Submit failed:", e);
         if (btn) {
@@ -1057,8 +1048,6 @@ async function submitExam() {
         showAlert("錯誤", "傳送失敗，請稍後重試。如果持續失敗，請聯絡助教。");
     }
 }
-
-
 
 
 // ==========================================

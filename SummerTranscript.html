@@ -158,12 +158,12 @@
         // ==========================================
         // 核心繪圖函數：生成 SVG Box Plot (水平與垂直)
         // ==========================================
-        
+
         // 生成水平盒鬚圖 (大題用)
         function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
             // 計算百分比 (0-100)
             const mapX = (val) => (val / maxScore) * 100;
-            
+
             const xMin = mapX(min), xMax = mapX(max);
             const xLq = mapX(lq), xUq = mapX(uq), xMed = mapX(median);
             const xScore = mapX(score);
@@ -192,7 +192,7 @@
         function createVerticalBoxPlot(min, max, lq, median, uq, score) {
             // Y 軸從上到下是 0 到 100，所以分數越高，Y 越小 (倒置)
             const mapY = (val) => 100 - ((val / 5) * 100);
-            
+
             const yMin = mapY(min), yMax = mapY(max);
             const yLq = mapY(lq), yUq = mapY(uq), yMed = mapY(median);
             const yScore = mapY(score);
@@ -227,7 +227,7 @@
         function renderTranscript(studentData, publicData) {
             document.getElementById('total-students').innerText = publicData.totalStudents;
             document.getElementById('practical-score').innerText = studentData.practicalScore || 0;
-            
+
             const container = document.getElementById('theory-container');
             container.innerHTML = ''; // 清空
 
@@ -238,11 +238,11 @@
                 // 1. 建立大題容器
                 const groupEl = document.createElement('section');
                 groupEl.className = "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden";
-                
+
                 // 2. 建立大題 Header (包含統計文字與水平 Box Plot)
                 const headerEl = document.createElement('div');
                 headerEl.className = "p-5 cursor-pointer hover:bg-gray-50 transition-colors flex flex-col md:flex-row gap-6 items-center group-header";
-                
+
                 headerEl.innerHTML = `
                     <!-- 左側：標題與數據網格 -->
                     <div class="w-full md:w-1/2 flex-shrink-0">
@@ -269,10 +269,10 @@
                         <div class="flex-1 relative h-[40px]">
                             <!-- 繪製 SVG -->
                             ${createHorizontalBoxPlot(
-                                groupStats.low, groupStats.high, 
-                                groupStats.lq, groupStats.median, groupStats.uq, 
-                                myGroupScore, groupStats.maxScore
-                            )}
+                    groupStats.low, groupStats.high,
+                    groupStats.lq, groupStats.median, groupStats.uq,
+                    myGroupScore, groupStats.maxScore
+                )}
                         </div>
                         <span class="material-symbols-outlined text-gray-400 chevron text-2xl">expand_more</span>
                     </div>
@@ -281,16 +281,16 @@
                 // 3. 建立子題容器 (Accordion)
                 const contentEl = document.createElement('div');
                 contentEl.className = "accordion-content bg-[#f8fafc] border-t border-gray-100";
-                
+
                 // 子題列表
                 let questionsHtml = '<div class="accordion-inner"><div class="p-6 flex flex-wrap gap-4 md:gap-6 justify-center md:justify-start">';
-                
+
                 groupStats.questions.forEach(qId => {
                     const qStats = publicData.questions[qId];
                     const myScore = studentData.theoryScores[qId] !== undefined ? studentData.theoryScores[qId] : 0;
-                    
+
                     // 若沒有此題的統計資料則略過
-                    if(!qStats) return;
+                    if (!qStats) return;
 
                     questionsHtml += `
                         <div class="flex flex-col items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm w-[72px] hover:shadow-md transition-shadow">
@@ -301,15 +301,15 @@
                             <!-- 繪製垂直 Box Plot -->
                             <div class="relative w-10 h-[100px]">
                                 ${createVerticalBoxPlot(
-                                    qStats.low, qStats.high, 
-                                    qStats.lq, qStats.median, qStats.uq, 
-                                    myScore
-                                )}
+                        qStats.low, qStats.high,
+                        qStats.lq, qStats.median, qStats.uq,
+                        myScore
+                    )}
                             </div>
                         </div>
                     `;
                 });
-                
+
                 questionsHtml += '</div></div>';
                 contentEl.innerHTML = questionsHtml;
 
@@ -335,7 +335,7 @@
         // 當找不到資料庫或未登入時，產生假資料讓您預覽完美畫面
         function generateMockData(uid, name) {
             document.getElementById('student-name').innerText = `學生：${name || '訪客預覽模式'}`;
-            
+
             // 模擬考生的真實作答結構 { "1": 3, "23-1": 5, ... }
             const mockTheoryScores = {
                 "1": 3, "2": 5, "3": 4, "4": 1, "5": 0,
@@ -356,18 +356,18 @@
             const publicData = {
                 totalStudents: 156,
                 groups: {
-                    "Part1": { 
-                        title: "第一大題：單選題", maxScore: 25, 
+                    "Part1": {
+                        title: "第一大題：單選題", maxScore: 25,
                         mean: 18.5, median: 19, high: 25, low: 5, uq: 22, lq: 14,
                         questions: ["1", "2", "3", "4", "5"]
                     },
-                    "Part2": { 
-                        title: "第二大題：題組 (第23題)", maxScore: 15, 
+                    "Part2": {
+                        title: "第二大題：題組 (第23題)", maxScore: 15,
                         mean: 9.2, median: 10, high: 15, low: 0, uq: 12, lq: 6,
                         questions: ["23-1", "23-2", "23-3"]
                     },
-                    "Part3": { 
-                        title: "第三大題：題組 (第30題)", maxScore: 10, 
+                    "Part3": {
+                        title: "第三大題：題組 (第30題)", maxScore: 10,
                         mean: 5.8, median: 6, high: 10, low: 0, uq: 8, lq: 3,
                         questions: ["30-1", "30-2"]
                     }
@@ -395,13 +395,23 @@
         // ==========================================
         // 初始化與身份驗證
         // ==========================================
-        
+        // 初始化與身份驗證 (真實資料庫讀取)
+        // ==========================================
+
+        // 定義大題結構與配分 (供前端自動計算大題總分與防呆使用)
+        const QUESTION_GROUPS = {
+            "Part1": { title: "第一大題", questions: ["1", "2", "3", "4", "5"], maxScore: 25 },
+            "Part2": { title: "第二大題", questions: ["6", "7"], maxScore: 10 },
+            "Part3": { title: "第三大題", questions: ["8", "9", "10"], maxScore: 15 },
+            "Part4": { title: "第四大題", questions: Array.from({ length: 10 }, (_, i) => (i + 11).toString()), maxScore: 50 },
+            "Part5": { title: "第五大題", questions: Array.from({ length: 10 }, (_, i) => (i + 21).toString()), maxScore: 50 }
+        };
+
         if (!auth) {
-            // 如果沒有 Firebase Config，直接進入預覽模式
-            generateMockData(null, null);
+            document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Firebase 初始化失敗，請檢查金鑰設定。</p>`;
         } else {
             onAuthStateChanged(auth, async (user) => {
-                if (!user) {
+                if (!user || user.isAnonymous) {
                     document.body.innerHTML = `
                         <div class="flex items-center justify-center h-screen bg-gray-50">
                             <div class="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -415,24 +425,83 @@
 
                 try {
                     document.getElementById('student-name').innerText = `學生：${user.displayName || user.email}`;
-                    
-                    /* 
-                     * ⚠️ 這裡保留您未來的真實資料庫讀取邏輯
-                     * 您需要從 Firebase 讀取學生的成績 (studentData)
-                     * 以及全班的統計資料 (publicData)
-                     * 
-                     * const myResultSnap = await getDoc(doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory'));
-                     * const publicStatsSnap = await getDoc(doc(db, 'artifacts', 'dhjh-summer-camp', 'public_data', 'theory_stats'));
-                     * 
-                     * 如果抓到了，就執行： renderTranscript(myResultSnap.data(), publicStatsSnap.data());
-                     * 如果沒抓到 (開發階段)，我先呼叫 Mock 函數讓您看畫面：
-                     */
-                     
-                    generateMockData(user.uid, user.displayName || user.email);
+
+                    // ----------------------------------------------------
+                    // 1. 取得學生個人成績
+                    // ----------------------------------------------------
+                    const myResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
+                    const myResultSnap = await getDoc(myResultRef);
+
+                    if (!myResultSnap.exists()) {
+                        document.getElementById('loading').innerHTML = `
+                            <div class="text-center p-6">
+                                <span class="material-symbols-outlined text-gray-400 text-5xl mb-2">assignment_late</span>
+                                <p class="text-gray-600 font-bold mb-1">您尚未交卷或查無成績資料</p>
+                                <p class="text-sm text-gray-400">請確認您已完成「暑期理論作答」並成功送出。</p>
+                            </div>`;
+                        return;
+                    }
+
+                    const rawStudentData = myResultSnap.data();
+                    const theoryScores = rawStudentData.theoryScores || {};
+
+                    // 前端動態計算各大題得分 (因為交卷時只存了單題分數)
+                    const groupScores = {};
+                    Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
+                        groupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (theoryScores[qId] || 0), 0);
+                    });
+
+                    const studentData = {
+                        practicalScore: rawStudentData.practicalScore || '--', // 未來若有實作成績可接上
+                        theoryScores: theoryScores,
+                        groupScores: groupScores
+                    };
+
+                    // ----------------------------------------------------
+                    // 2. 取得全班統計資料 (Public Data)
+                    // ----------------------------------------------------
+                    // 注意：路徑符合您設定的公開規則 match /public_data/{docId}
+                    const publicStatsRef = doc(db, 'public_data', 'theory_test_1_stats');
+                    const publicStatsSnap = await getDoc(publicStatsRef);
+
+                    let publicData;
+                    if (publicStatsSnap.exists()) {
+                        publicData = publicStatsSnap.data();
+                    } else {
+                        // 【防呆機制】如果老師尚未上傳全班統計，自動產生預設的「空殼資料」避免畫面崩潰
+                        console.warn("尚未建立全班統計資料，使用預設圖表。");
+                        publicData = {
+                            totalStudents: 0,
+                            groups: {},
+                            questions: {}
+                        };
+
+                        Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
+                            publicData.groups[groupId] = {
+                                title: groupInfo.title, maxScore: groupInfo.maxScore,
+                                mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0,
+                                questions: groupInfo.questions
+                            };
+                        });
+
+                        for (let i = 1; i <= 30; i++) {
+                            publicData.questions[i.toString()] = { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0 };
+                        }
+                    }
+
+                    // ----------------------------------------------------
+                    // 3. 渲染畫面
+                    // ----------------------------------------------------
+                    renderTranscript(studentData, publicData);
 
                 } catch (e) {
                     console.error("資料讀取失敗:", e);
-                    document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">資料讀取失敗，請聯絡老師。</p>`;
+                    document.getElementById('loading').innerHTML = `
+                        <div class="text-center p-6">
+                            <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
+                            <p class="text-red-500 font-bold">資料讀取失敗</p>
+                            <p class="text-xs text-gray-400 mt-2">${e.message}</p>
+                        </div>`;
                 }
             });
         }
