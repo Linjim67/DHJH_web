@@ -1409,6 +1409,7 @@ function executeChemCheck(qId) {
 // 模組十：全域綁定保護機制
 // 確保 HTML onclick 與 ondrop 呼叫的函數都能在全域被找到
 // ==========================================
+console.log("程式有成功執行到模組十！");
 window.verifyLogin = verifyLogin;
 window.requestCheck = requestCheck;
 window.requestGroupCheck = requestGroupCheck;
@@ -1420,7 +1421,8 @@ window.addChemFormula = addChemFormula;
 window.addCustomChem = addCustomChem;
 window.executeChemCheck = executeChemCheck;
 window.restoreChemChip = restoreChemChip;
-
+window.submitExam = submitExam;
+window.saveDraft = saveDraft;
 window.allowDrop = allowDrop;
 window.dropToPool = dropToPool;
 window.dropToZone = dropToZone;
