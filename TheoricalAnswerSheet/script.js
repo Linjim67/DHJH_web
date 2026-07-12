@@ -969,29 +969,55 @@ async function submitExam() {
 
     let totalScore = 0;
 
-    // 動態寫入所有題目的作答資料與分數 (精簡為一個迴圈)
+    // ==========================================
+    // 🚀 交卷瞬間：強制重新抓取答案並「自動批改」
+    // ==========================================
     Object.keys(questionStates).forEach(qId => {
-        // 取得單題得分
-        const earnedPoints = questionStates[qId].isCorrect ? questionStates[qId].maxPoints : 0;
-        payload.scores[qId] = earnedPoints;
-        totalScore += earnedPoints;
-
-        if (qId === 'q21') return; // 化學題已單獨處理
-
         const qState = questionStates[qId];
-        if (qState.type === 'mcq') {
-            payload.answers[qId] = getRadioValue(qId);
-        } else if (qState.type === 'fill-in') {
-            payload.answers[qId] = document.getElementById(qId)?.value || "";
-        } else if (qState.type === 'mixed') {
-            payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
-            payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
-        } else if (qState.type === 'multi-mcq') {
-            payload.answers[qId] = [];
-            for (let i = 0; i < qState.correctAnswer.length; i++) {
-                payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
+        let earnedPoints = 0;
+
+        if (qId === 'q21') {
+            // 化學題 (q21) 因為批改邏輯非常複雜 (涉及方程式解析)
+            // 因此保留原設定：依照學生點擊檢查後的狀態來給分
+            earnedPoints = qState.isCorrect ? qState.maxPoints : 0;
+        } else {
+            // 1. 抓取該題學生「目前畫面上」的答案
+            if (qState.type === 'mcq') {
+                payload.answers[qId] = getRadioValue(qId);
+            } else if (qState.type === 'fill-in') {
+                payload.answers[qId] = document.getElementById(qId)?.value || "";
+            } else if (qState.type === 'mixed') {
+                payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
+                payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
+            } else if (qState.type === 'multi-mcq') {
+                payload.answers[qId] = [];
+                for (let i = 0; i < qState.correctAnswer.length; i++) {
+                    payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
+                }
+            }
+
+            // 2. 進行強制自動批改 (不管學生有沒有按過檢查按鈕)
+            if (qState.type === 'mcq' || qState.type === 'fill-in') {
+                // 將兩邊轉為字串並去頭尾空白，避免型別問題
+                if (String(payload.answers[qId]).trim() === String(qState.correctAnswer)) {
+                    earnedPoints = qState.maxPoints;
+                }
+            } else if (qState.type === 'mixed') {
+                if (String(payload.answers[`${qId}_text`]).trim() === String(qState.correctAnswer.text) &&
+                    String(payload.answers[`${qId}_radio`]) === String(qState.correctAnswer.radio)) {
+                    earnedPoints = qState.maxPoints;
+                }
+            } else if (qState.type === 'multi-mcq') {
+                // 陣列比對
+                if (JSON.stringify(payload.answers[qId]) === JSON.stringify(qState.correctAnswer)) {
+                    earnedPoints = qState.maxPoints;
+                }
             }
         }
+
+        // 3. 將結算完的最終得分寫入 payload
+        payload.scores[qId] = earnedPoints;
+        totalScore += earnedPoints;
     });
 
     payload.total_score = totalScore;
@@ -1047,7 +1073,6 @@ async function submitExam() {
         }
         showAlert("錯誤", "傳送失敗，請稍後重試。如果持續失敗，請聯絡助教。");
     }
-}
 
 
 // ==========================================

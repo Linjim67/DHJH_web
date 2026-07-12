@@ -147,13 +147,20 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            // ⚠️ 如果單獨測試此檔案，請在此填寫您的 Firebase Config
+        // 將原本的 __firebase_config 判斷，直接替換為您真實的金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyAZ7cCQlXh8oiNzwnT2LL07KPt5TMaI2d8",
+            authDomain: "dhjhweb.firebaseapp.com",
+            projectId: "dhjhweb",
+            storageBucket: "dhjhweb.firebasestorage.app",
+            messagingSenderId: "763721572642",
+            appId: "1:763721572642:web:fee3751366cba01bc0c57b",
+            measurementId: "G-9CM3NBLLLS"
         };
 
-        const app = Object.keys(firebaseConfig).length > 0 ? initializeApp(firebaseConfig) : null;
-        const auth = app ? getAuth(app) : null;
-        const db = app ? getFirestore(app) : null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // ==========================================
         // 核心繪圖函數：生成 SVG Box Plot (水平與垂直)
