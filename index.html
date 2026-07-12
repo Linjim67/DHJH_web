@@ -17,10 +17,8 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #f0f4f9;
-            /* Gemini 的淺灰藍背景 */
         }
 
-        /* 側邊欄項目按鈕樣式 */
         .sidebar-item {
             display: flex;
             align-items: center;
@@ -47,7 +45,6 @@
             font-size: 20px;
         }
 
-        /* 隱藏捲軸但保持可捲動 */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -72,13 +69,11 @@
 
     <aside id="sidebar"
         class="w-64 flex flex-col p-3 gap-1 z-20 transition-transform duration-300 absolute md:relative -translate-x-full md:translate-x-0 h-full bg-[#f0f4f9]">
-        <!-- Logo 與標題 -->
         <div class="p-4 mb-4 text-xl font-bold text-gray-700 flex items-center gap-3">
             <span class="material-symbols-outlined text-blue-600" style="font-size: 28px;">biotech</span>
             化學平台
         </div>
 
-        <!-- 導覽按鈕 -->
         <div class="flex-1 overflow-y-auto flex flex-col gap-1">
             <div class="sidebar-item active" data-page="home" data-title="首頁儀表板">
                 <span class="material-symbols-outlined">home</span> 首頁儀表板
@@ -89,7 +84,6 @@
             <div class="sidebar-item" data-page="exam-paper" data-title="暑期理論試卷">
                 <span class="material-symbols-outlined">description</span> 暑期理論試卷
             </div>
-            <!-- 重點：將 data-src 的路徑指向您的新資料夾中的 index.html -->
             <div class="sidebar-item" data-page="exam-answer" data-title="暑期理論作答"
                 data-src="TheoricalAnswerSheet/index.html">
                 <span class="material-symbols-outlined">edit_square</span> 暑期理論作答
@@ -103,11 +97,9 @@
         </div>
     </aside>
 
-    <!-- 使用白底圓角，營造 App 的包覆感 -->
     <main
         class="flex-1 flex flex-col bg-white rounded-[32px] my-2 mr-2 ml-2 md:ml-0 shadow-sm relative overflow-hidden border border-gray-100">
 
-        <!-- 頂部 Header -->
         <header
             class="h-16 flex justify-between items-center px-6 border-b border-gray-100 shrink-0 bg-white/80 backdrop-blur-md z-10">
             <div class="flex items-center gap-3">
@@ -117,7 +109,6 @@
                 <h2 id="page-title" class="text-lg font-medium text-gray-800">首頁儀表板</h2>
             </div>
 
-            <!-- 登入與使用者資訊區塊 -->
             <div>
                 <button id="login-btn"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-sm font-medium transition-colors shadow-sm">
@@ -125,22 +116,22 @@
                 </button>
                 <div id="user-profile"
                     class="hidden flex items-center gap-3 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
-                    <div
-                        class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                        <span id="user-avatar-text">U</span>
-                    </div>
+                    <img id="user-avatar" src="" alt="Avatar"
+                        class="w-8 h-8 rounded-full border border-gray-200 hidden">
+                    <div id="user-avatar-text"
+                        class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
+                        U</div>
                     <span id="user-name" class="text-sm font-medium text-gray-700"></span>
                     <button id="logout-btn" class="text-gray-400 hover:text-red-500 transition-colors flex items-center"
                         title="登出">
-                        <span class="material-symbols-outlined" style="font-size: 18px;">logout</span>
+                        <span class="material-symbols-outlined" style="font-size: 20px;">logout</span>
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- 內容容器 (Iframe) -->
         <div class="flex-1 relative bg-[#f8fafc]">
-            <!-- 這裡使用 iframe 來載入各自獨立的 html 檔案，確保 css/js 完全分離不共用 -->
+            <!-- 子網站載入區 -->
             <iframe id="content-frame" class="w-full h-full border-0 bg-white" src="about:blank"></iframe>
 
             <div id="login-modal"
@@ -149,65 +140,50 @@
                     id="login-modal-box">
 
                     <div class="flex justify-between items-center mb-6">
-                        <h3 id="modal-title" class="text-2xl font-bold text-gray-800">登入帳號</h3>
+                        <h3 class="text-2xl font-bold text-gray-800">系統登入</h3>
                         <button id="close-modal-btn"
                             class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
 
-                    <!-- 系統提示訊息 -->
                     <div id="auth-error"
-                        class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
+                        class="hidden mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
                         <span class="material-symbols-outlined text-base">error</span>
                         <span id="auth-error-text">錯誤訊息</span>
                     </div>
 
-                    <!-- 表單 -->
-                    <form id="auth-form" class="flex flex-col gap-4">
-                        <div id="name-field" class="hidden flex-col gap-1">
-                            <label class="text-sm font-medium text-gray-600 ml-1">顯示名稱</label>
-                            <input type="text" id="auth-name" placeholder="輸入您的真實姓名"
-                                class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all">
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-sm font-medium text-gray-600 ml-1">電子郵件</label>
-                            <input type="email" id="auth-email" placeholder="example@email.com" required
-                                class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all">
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-sm font-medium text-gray-600 ml-1">密碼</label>
-                            <input type="password" id="auth-password" placeholder="輸入6位數以上密碼" required
-                                class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all">
-                        </div>
+                    <p class="text-gray-500 text-sm mb-6 text-center">請使用您的 Google 帳號進行登入</p>
 
-                        <button type="submit" id="auth-submit-btn"
-                            class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
-                            登入
-                        </button>
-                    </form>
-
-                    <!-- 切換註冊/登入 -->
-                    <div class="mt-6 text-center text-sm text-gray-500">
-                        <span id="auth-switch-text">還沒有帳號嗎？</span>
-                        <button id="auth-switch-btn" class="text-blue-600 font-medium hover:underline">立即註冊</button>
-                    </div>
+                    <!-- Google 登入按鈕 -->
+                    <button id="google-login-btn"
+                        class="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98]">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4"
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853"
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05"
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                            <path fill="#EA4335"
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        使用 Google 帳號登入
+                    </button>
                 </div>
             </div>
         </div>
     </main>
 
     <script type="module">
-        import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import {getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import {getFirestore, doc, setDoc, getDoc} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // 匯入 GoogleAuthProvider 與 signInWithPopup
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
-        // 1. Firebase 初始化設定
+        // ⚠️ 請務必替換為您真實的 firebaseConfig！
         // ==========================================
-        const appId = 'dhjh-summer-camp';
-
-        // 請將下方大括號內的內容，替換成您在 Firebase 後台複製的真實金鑰！
         const firebaseConfig = {
             apiKey: "763721572642",
             authDomain: "dhjhweb.firebaseapp.com",
@@ -217,22 +193,16 @@
             appId: "1:123456789:web:abcdefg"
         };
 
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
 
-            // 移除沙盒環境驗證，改為標準的匿名登入初始化
-            async function initAuth() {
-            try {
-                await signInAnonymously(auth);
-            } catch (error) {
-                console.error("匿名登入失敗:", error);
-            }
-        }
-        initAuth();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // 追蹤當前登入狀態
+        let currentUser = null;
 
         // ==========================================
-        // 2. 介面互動邏輯 (選單切換與 Iframe 載入)
         // ==========================================
         const iframe = document.getElementById('content-frame');
         const pageTitle = document.getElementById('page-title');
@@ -240,30 +210,10 @@
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const sidebar = document.getElementById('sidebar');
 
-        // 手機版側邊欄開關
         mobileMenuBtn.addEventListener('click', () => {
             sidebar.classList.toggle('-translate-x-full');
         });
 
-        // 動態生成「施工中」的提示網頁內容
-        function getConstructionHTML(title) {
-            return `
-                <!DOCTYPE html>
-                <html><head>
-                    <script src="https://cdn.tailwindcss.com"><\/script>
-                    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-                </head>
-                <body class="flex items-center justify-center h-full bg-white text-gray-500 font-sans m-0">
-                    <div class="text-center p-8 bg-gray-50 rounded-[32px] border border-gray-100 shadow-sm max-w-md">
-                        <span class="material-symbols-outlined text-gray-300 mb-4" style="font-size: 64px;">construction</span>
-                        <h2 class="text-2xl font-bold text-gray-700 mb-2">${title}</h2>
-                        <p class="text-gray-500">此模組尚在開發階段。<br>未來將以獨立的 <b>.html</b> 檔案載入於此空間，確保樣式與邏輯完全獨立。</p>
-                    </div>
-                </body></html>
-            `;
-        }
-
-        // 首頁儀表板內容
         function getHomeHTML() {
             return `
                 <!DOCTYPE html>
@@ -271,54 +221,53 @@
                     <script src="https://cdn.tailwindcss.com"><\/script>
                     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
                 </head>
-                <body class="p-8 bg-white text-gray-800 font-sans m-0">
-                    <h1 class="text-3xl font-bold mb-2">歡迎來到暑期化學學習平台 👋</h1>
-                    <p class="text-gray-500 mb-8">請從左側選單選擇您要進入的子系統。所有子系統皆為獨立運行。</p>
+                <body class="p-8 bg-[#f8fafc] text-gray-800 font-sans m-0 h-screen flex flex-col">
+                    <h1 class="text-3xl font-bold mb-2">歡迎來到暑期化學營 👋</h1>
+                    <p class="text-gray-500 mb-8">這是您的學習總部。請先於右上角登入後，再點擊左側選單進入各項功能。</p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="p-6 bg-blue-50 rounded-[24px] border border-blue-100">
-                            <span class="material-symbols-outlined text-blue-600 mb-2" style="font-size: 32px;">campaign</span>
-                            <h3 class="text-lg font-bold text-blue-900">最新公告</h3>
-                            <p class="text-blue-700 mt-2">請同學先點擊右上角登入系統。<br>「暑期理論作答」模組已上線，可前往測試。</p>
-                        </div>
-                        <div class="p-6 bg-green-50 rounded-[24px] border border-green-100">
-                            <span class="material-symbols-outlined text-green-600 mb-2" style="font-size: 32px;">account_balance_wallet</span>
-                            <h3 class="text-lg font-bold text-green-900">點數系統 (開發中)</h3>
-                            <p class="text-green-700 mt-2">您的考試分數將在此處轉換為競標點數，敬請期待暑期競標大會！</p>
+                        <div class="p-6 bg-white rounded-[24px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <span class="material-symbols-outlined text-blue-500 mb-2" style="font-size: 32px;">campaign</span>
+                            <h3 class="text-lg font-bold text-gray-800">最新公告</h3>
+                            <p class="text-gray-600 mt-2 text-sm leading-relaxed">
+                                系統已全面升級為模組化架構！<br>現在全面支援 Google 帳號一鍵登入，作答更安全。
+                            </p>
                         </div>
                     </div>
                 </body></html>
             `;
         }
 
-        // 處理側邊欄點擊事件
+        // 側邊欄點擊事件 (加入權限阻擋)
         sidebarItems.forEach(item => {
             item.addEventListener('click', (e) => {
-                // 更新 Active 狀態
-                sidebarItems.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                
-                // 更新標題
-                const title = item.getAttribute('data-title');
-                pageTitle.innerText = title;
-
-                // 處理 Iframe 載入
                 const pageId = item.getAttribute('data-page');
+                const title = item.getAttribute('data-title');
                 const src = item.getAttribute('data-src');
 
+                // 權限守衛：如果點擊的不是首頁，且「尚未登入」
+                if (pageId !== 'home' && !currentUser) {
+                    showError("請先登入系統才能進入該頁面喔！");
+                    openModal();
+                    return; // 中斷執行，不會載入子網站
+                }
+
+                // 通過檢查，更新介面狀態
+                sidebarItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                pageTitle.innerText = title;
+
+                // 載入對應畫面
                 if (src) {
-                    // 如果有指定檔案 (如 exam.html)，直接載入該檔案
-                    iframe.src = src;
+                    iframe.src = src; // 載入理論試卷等獨立 html
                 } else if (pageId === 'home') {
                     const doc = iframe.contentWindow.document;
                     doc.open(); doc.write(getHomeHTML()); doc.close();
                 } else {
-                    // 其他尚未建立的頁面，顯示施工中
                     const doc = iframe.contentWindow.document;
-                    doc.open(); doc.write(getConstructionHTML(title)); doc.close();
+                    doc.open(); doc.write(`<body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;"><h2>${title} 施工中...</h2></body>`); doc.close();
                 }
 
-                // 手機版點擊後自動收起側邊欄
                 if (window.innerWidth < 768) {
                     sidebar.classList.add('-translate-x-full');
                 }
@@ -328,30 +277,24 @@
         // 預設載入首頁
         document.querySelector('[data-page="home"]').click();
 
-
         // ==========================================
-        // 3. 登入與註冊系統 (Firebase Auth & Firestore)
         // ==========================================
         const loginModal = document.getElementById('login-modal');
         const loginModalBox = document.getElementById('login-modal-box');
         const loginBtn = document.getElementById('login-btn');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        const authForm = document.getElementById('auth-form');
-        const authSwitchBtn = document.getElementById('auth-switch-btn');
+        const googleLoginBtn = document.getElementById('google-login-btn');
         const authError = document.getElementById('auth-error');
         const authErrorText = document.getElementById('auth-error-text');
-        
-        let isLoginMode = true; // true: 登入模式, false: 註冊模式
 
-        // 開關 Modal
         function openModal() {
             loginModal.classList.remove('hidden');
-            // 延遲一點點加上 opacity 產生淡入動畫
             setTimeout(() => {
                 loginModal.classList.remove('opacity-0');
                 loginModalBox.classList.remove('scale-95');
             }, 10);
         }
+
         function closeModal() {
             loginModal.classList.add('opacity-0');
             loginModalBox.classList.add('scale-95');
@@ -359,127 +302,92 @@
             authError.classList.add('hidden');
         }
 
-        loginBtn.addEventListener('click', openModal);
-        closeModalBtn.addEventListener('click', closeModal);
-
-        // 切換登入/註冊表單外觀
-        authSwitchBtn.addEventListener('click', () => {
-            isLoginMode = !isLoginMode;
-            authError.classList.add('hidden');
-            authForm.reset();
-
-            if (isLoginMode) {
-                document.getElementById('modal-title').innerText = '登入帳號';
-                document.getElementById('name-field').classList.add('hidden');
-                document.getElementById('auth-submit-btn').innerText = '登入';
-                document.getElementById('auth-switch-text').innerText = '還沒有帳號嗎？';
-                authSwitchBtn.innerText = '立即註冊';
-            } else {
-                document.getElementById('modal-title').innerText = '建立新帳號';
-                document.getElementById('name-field').classList.remove('hidden');
-                document.getElementById('auth-name').required = true;
-                document.getElementById('auth-submit-btn').innerText = '註冊並登入';
-                document.getElementById('auth-switch-text').innerText = '已經有帳號了？';
-                authSwitchBtn.innerText = '切換登入';
-            }
-        });
-
-        // 顯示錯誤訊息
         function showError(msg) {
             authErrorText.innerText = msg;
             authError.classList.remove('hidden');
-            // 震動動畫
             loginModalBox.classList.add('animate-pulse');
             setTimeout(() => loginModalBox.classList.remove('animate-pulse'), 300);
         }
 
-        // 處理表單送出 (登入或註冊)
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('auth-submit-btn');
-            const originalText = btn.innerText;
-            btn.innerText = '處理中...';
-            btn.disabled = true;
-            authError.classList.add('hidden');
+        loginBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
 
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            const name = document.getElementById('auth-name').value;
+        // 執行 Google 登入
+        googleLoginBtn.addEventListener('click', async () => {
+            authError.classList.add('hidden');
+            googleLoginBtn.innerText = '登入處理中...';
+            googleLoginBtn.disabled = true;
 
             try {
-                if (isLoginMode) {
-                    // 執行登入
-                    await signInWithEmailAndPassword(auth, email, password);
-                } else {
-                    // 執行註冊
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-                    
-                    // 更新 Firebase Auth 上的顯示名稱
-                    await updateProfile(user, { displayName: name });
-                    
-                    // 將帳戶資訊額外存入 Firestore 資料庫 (符合您的需求)
-                    // 路徑規則：/artifacts/{appId}/users/{userId}/profile
-                    const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile');
-                    await setDoc(userRef, {
-                        name: name,
-                        email: email,
-                        role: 'student',
-                        createdAt: new Date().toISOString()
-                    });
-                }
+                // 彈出 Google 登入視窗
+                const result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+
+                // (選用) 將使用者基本資料存入資料庫
+                const userRef = doc(db, 'users', user.uid);
+                await setDoc(userRef, {
+                    name: user.displayName,
+                    email: user.email,
+                    lastLogin: new Date().toISOString()
+                }, { merge: true });
+
                 closeModal();
-                authForm.reset();
             } catch (error) {
-                console.error("Auth Error:", error);
-                let errorMsg = '發生錯誤，請稍後再試。';
-                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMsg = '電子郵件或密碼錯誤！';
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorMsg = '此信箱已被註冊！';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMsg = '密碼強度太弱，至少需要6個字元。';
+                console.error("Google 登入錯誤:", error);
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    showError('登入失敗，請檢查網路或稍後再試。');
                 }
-                showError(errorMsg);
             } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
+                googleLoginBtn.innerHTML = `使用 Google 帳號登入`;
+                googleLoginBtn.disabled = false;
             }
         });
 
         // ==========================================
-        // 4. 監聽登入狀態並更新右上角介面
         // ==========================================
         const userProfile = document.getElementById('user-profile');
         const userNameDisplay = document.getElementById('user-name');
         const userAvatarText = document.getElementById('user-avatar-text');
+        const userAvatarImg = document.getElementById('user-avatar');
         const logoutBtn = document.getElementById('logout-btn');
 
-        onAuthStateChanged(auth, async (user) => {
-            // 注意：因為我們初始化使用了 signInAnonymously，所以要排除匿名帳戶
+        onAuthStateChanged(auth, (user) => {
             if (user && !user.isAnonymous) {
-                // 成功登入真實帳號
+                // 已登入
+                currentUser = user;
                 loginBtn.classList.add('hidden');
                 userProfile.classList.remove('hidden');
-                
+
                 const displayName = user.displayName || user.email.split('@')[0];
                 userNameDisplay.innerText = displayName;
-                userAvatarText.innerText = displayName.charAt(0).toUpperCase();
 
-                // 未來擴充：您可以從這裡把 userId 傳給 Iframe 內的測驗系統
-                // iframe.contentWindow.postMessage({ type: 'USER_LOGIN', userId: user.uid }, '*');
+                // 如果 Google 有提供大頭貼就顯示，沒有就顯示字母
+                if (user.photoURL) {
+                    userAvatarImg.src = user.photoURL;
+                    userAvatarImg.classList.remove('hidden');
+                    userAvatarText.classList.add('hidden');
+                } else {
+                    userAvatarText.innerText = displayName.charAt(0).toUpperCase();
+                    userAvatarImg.classList.add('hidden');
+                    userAvatarText.classList.remove('hidden');
+                }
             } else {
-                // 未登入 (或處於匿名狀態)
+                // 未登入
+                currentUser = null;
                 loginBtn.classList.remove('hidden');
                 userProfile.classList.add('hidden');
+
+                // 如果登出時，畫面停在需要權限的子網站，強制跳回首頁
+                const activePage = document.querySelector('.sidebar-item.active').getAttribute('data-page');
+                if (activePage !== 'home') {
+                    document.querySelector('[data-page="home"]').click();
+                }
             }
         });
 
-        // 登出功能
+        // 登出
         logoutBtn.addEventListener('click', async () => {
             await signOut(auth);
-            // 登出後重新退回匿名狀態以維持 Canvas/Firestore 讀取權限
-            initAuth(); 
         });
 
     </script>
