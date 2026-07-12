@@ -68,6 +68,31 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+console.log("🚀 腳本開始執行！嘗試綁定全域函數...");
+
+// ==========================================
+// 模組十：全域綁定保護機制 (移到最前面！)
+// ==========================================
+window.requestCheck = requestCheck;
+window.requestGroupCheck = requestGroupCheck;
+window.confirmCheck = confirmCheck;
+window.closeConfirmModal = closeConfirmModal;
+window.closeAlertModal = closeAlertModal;
+window.submitExam = submitExam;
+window.addChemFormula = addChemFormula;
+window.addCustomChem = addCustomChem;
+window.executeChemCheck = executeChemCheck;
+window.restoreChemChip = restoreChemChip;
+window.submitExam = submitExam;
+window.saveDraft = saveDraft;
+window.allowDrop = allowDrop;
+window.dropToPool = dropToPool;
+window.dropToZone = dropToZone;
+window.dropToTrash = dropToTrash;
+
+console.log("✅ 全域函數綁定完成！");
+
+
 const firebaseConfig = {
     apiKey: "AIzaSyAZ7cCQlXh8oiNzwnT2LL07KPt5TMaI2d8",
     authDomain: "dhjhweb.firebaseapp.com",
@@ -1405,25 +1430,3 @@ function executeChemCheck(qId) {
     saveDraft();
 }
 
-// ==========================================
-// 模組十：全域綁定保護機制
-// 確保 HTML onclick 與 ondrop 呼叫的函數都能在全域被找到
-// ==========================================
-console.log("程式有成功執行到模組十！");
-window.verifyLogin = verifyLogin;
-window.requestCheck = requestCheck;
-window.requestGroupCheck = requestGroupCheck;
-window.confirmCheck = confirmCheck;
-window.closeConfirmModal = closeConfirmModal;
-window.closeAlertModal = closeAlertModal;
-window.submitExam = submitExam;
-window.addChemFormula = addChemFormula;
-window.addCustomChem = addCustomChem;
-window.executeChemCheck = executeChemCheck;
-window.restoreChemChip = restoreChemChip;
-window.submitExam = submitExam;
-window.saveDraft = saveDraft;
-window.allowDrop = allowDrop;
-window.dropToPool = dropToPool;
-window.dropToZone = dropToZone;
-window.dropToTrash = dropToTrash;
