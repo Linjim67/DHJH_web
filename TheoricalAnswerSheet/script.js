@@ -5,45 +5,45 @@ let currentCheckGroup = null;
 
 // 題庫狀態字典 (包含所有 1-30 題的設定)
 const questionStates = {
-    q1: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "C" },
-    q2: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q3: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "C" },
-    q4: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q5: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
-    q6: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "B" },
-    q7: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
-    q8: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q9: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "C" },
-    q10: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "C" },
-    q11: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "B" },
-    q12: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "B" },
-    q13: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q14: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q15: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
-    q16: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q17: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
-    q18: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "C" },
-    q19: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
-    q20: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
+    q1: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "4bb16433" },
+    q2: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "3c176854" },
+    q3: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "9a01c0d5" },
+    q4: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "9dc49ad2" },
+    q5: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "354d1dce" },
+    q6: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "e939f0a1" },
+    q7: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "479d1bfc" },
+    q8: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "47e71e66" },
+    q9: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "e44aab5b" },
+    q10: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "5346093d" },
+    q11: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "f7bc51b5" },
+    q12: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "4356ac08" },
+    q13: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "aa6bf6a6" },
+    q14: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "fc065a6b" },
+    q15: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "a3ded86f" },
+    q16: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "f2f39d55" },
+    q17: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "918eda41" },
+    q18: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "fc869915" },
+    q19: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "9921d2db" },
+    q20: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "8370a9cb" },
 
     q21: {
         type: 'chem', attempts: 0, maxPoints: 5, isCorrect: false,
-        correctAnswer: {
+        correctHash: {
             reactants: { "Cr2O7^2-": 4, "C4H10O": 1, "H^+": 32 },
             products: { "Cr^3+": 8, "CO2": 4, "H2O": 21 }
         }
     },
-    q22: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "D" },
-    q231: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "0.48" },
-    q232: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "2.50" },
-    q24: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: { radio: "是", text: "86.4" } },
-    q25: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: { radio: "正", text: "360" } },
-    q26: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "A" },
-    q27: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "C" },
-    q28: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "25" },
+    q22: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "811f31cd" },
+    q231: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "8a0b4bce" },
+    q232: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "7147821a" },
+    q24: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: { radio: "79998d4c", text: "b709b7f3" } },
+    q25: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: { radio: "f8842bd6", text: "7e93fd0f" } },
+    q26: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "2641ad82" },
+    q27: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "82a668b7" },
+    q28: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "3a13a120" },
     q29: {
         type: 'multi-mcq', attempts: 0, maxPoints: 5, isCorrect: false,
-        correctAnswer: ["A", "B", "D", "F", "B"],
+        correctHash: ["e070c7fb", "3896b6f7", "912069c6", "96e91fb9", "374e45fa"],
         subStates: [
             { isCorrect: false, checkedHistory: [] },
             { isCorrect: false, checkedHistory: [] },
@@ -52,8 +52,8 @@ const questionStates = {
             { isCorrect: false, checkedHistory: [] }
         ]
     },
-    q301: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "0.60" },
-    q302: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctAnswer: "0.80" }
+    q301: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "77aad06c" },
+    q302: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "e0d6a1a3" }
 };
 // ==========================================
 // 模組：系統參數設定 (密碼與時間鎖)
@@ -562,6 +562,32 @@ function updateQuestionUI(qId) {
     }
 }
 
+window.encryptAnswer = function (qId, answer) {
+    /* STREAMING_CHUNK:加入自動移除 q 前綴的防呆機制 */
+    if (answer === undefined || answer === null || answer === "") return "";
+
+    // 1. 數值正規化
+    let normalized = String(answer).trim();
+    if (normalized !== "" && !isNaN(Number(normalized))) {
+        normalized = parseFloat(normalized).toString();
+    } else {
+        normalized = normalized.toLowerCase();
+    }
+
+    let cleanQid = String(qId).trim().replace(/^q/i, '');
+
+    //  FNV-1a 加密
+    const text = "dhjh_chem_" + cleanQid + "_" + normalized;
+
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0).toString(16).padStart(8, '0');
+};
+
 function requestCheck(qId) {
     try {
         const qState = questionStates[qId];
@@ -580,8 +606,10 @@ function requestCheck(qId) {
             hasAnswer = !!radioEl && hasText;
         } else if (qState.type === 'multi-mcq') {
             hasAnswer = true;
-            for (let i = 0; i < qState.correctAnswer.length; i++) {
-                if (!qState.subStates[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
+            // 換成 correctHash.length 避免當機
+            for (let i = 0; i < qState.correctHash.length; i++) {
+                // subStates 改為 substates 配合題庫設定
+                if (!qState.substates[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
                     hasAnswer = false; break;
                 }
             }
@@ -646,8 +674,9 @@ function requestGroupCheck(qIdsStr) {
                 hasAnswer = !!radioEl && hasText;
             } else if (qState.type === 'multi-mcq') {
                 hasAnswer = true;
-                for (let i = 0; i < qState.correctAnswer.length; i++) {
-                    if (!qState.subStates[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
+                // 換成 correctHash.length 避免當機
+                for (let i = 0; i < qState.correctHash.length; i++) {
+                    if (!qState.substates[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
                         hasAnswer = false; break;
                     }
                 }
@@ -708,27 +737,31 @@ function executeGroupCheck(qIds) {
             } else {
                 let isCorrect = false;
 
+                // 【套用加密引擎比對】
                 if (qState.type === 'mcq') {
                     const el = document.querySelector(`input[name="${qId}"]:checked`);
-                    isCorrect = el && el.value === qState.correctAnswer;
+                    isCorrect = el && window.encryptAnswer(qId, el.value) === qState.correctHash;
                 } else if (qState.type === 'fill-in') {
                     const el = document.getElementById(qId);
                     const userAnswer = el ? String(el.value || "").trim() : "";
-                    isCorrect = checkAnswerEquivalence(userAnswer, qState.correctAnswer);
+                    isCorrect = window.encryptAnswer(qId, userAnswer) === qState.correctHash;
                 } else if (qState.type === 'mixed') {
                     const el = document.querySelector(`input[name="${qId}_radio"]:checked`);
-                    const radioCorrect = el && el.value === qState.correctAnswer.radio;
+                    const radioCorrect = el && window.encryptAnswer(`${qId}_radio`, el.value) === qState.correctHash.radio;
+
                     const textEl = document.getElementById(`${qId}_text`);
                     const textAns = textEl ? String(textEl.value || "").trim() : "";
-                    const textCorrect = checkAnswerEquivalence(textAns, qState.correctAnswer.text);
+                    const textCorrect = window.encryptAnswer(`${qId}_text`, textAns) === qState.correctHash.text;
+
                     isCorrect = radioCorrect && textCorrect;
                 } else if (qState.type === 'multi-mcq') {
                     let allSubCorrect = true;
-                    for (let i = 0; i < qState.correctAnswer.length; i++) {
-                        const sub = qState.subStates[i];
+                    for (let i = 0; i < qState.correctHash.length; i++) {
+                        const sub = qState.substates[i];
                         if (sub.isCorrect) continue;
                         const el = document.querySelector(`input[name="${qId}_${i + 1}"]:checked`);
-                        if (el && el.value === qState.correctAnswer[i]) {
+
+                        if (el && window.encryptAnswer(`${qId}_${i + 1}`, el.value) === qState.correctHash[i]) {
                             sub.isCorrect = true;
                         } else {
                             allSubCorrect = false;
@@ -772,27 +805,31 @@ function executeCheck(qId) {
 
         let isCorrect = false;
 
+        // 【套用加密引擎比對】
         if (qState.type === 'mcq') {
             const el = document.querySelector(`input[name="${qId}"]:checked`);
-            isCorrect = el && el.value === qState.correctAnswer;
+            isCorrect = el && window.encryptAnswer(qId, el.value) === qState.correctHash;
         } else if (qState.type === 'fill-in') {
             const el = document.getElementById(qId);
             const userAnswer = el ? String(el.value || "").trim() : "";
-            isCorrect = checkAnswerEquivalence(userAnswer, qState.correctAnswer);
+            isCorrect = window.encryptAnswer(qId, userAnswer) === qState.correctHash;
         } else if (qState.type === 'mixed') {
             const el = document.querySelector(`input[name="${qId}_radio"]:checked`);
-            const radioCorrect = el && el.value === qState.correctAnswer.radio;
+            const radioCorrect = el && window.encryptAnswer(`${qId}_radio`, el.value) === qState.correctHash.radio;
+
             const textEl = document.getElementById(`${qId}_text`);
             const textAns = textEl ? String(textEl.value || "").trim() : "";
-            const textCorrect = checkAnswerEquivalence(textAns, qState.correctAnswer.text);
+            const textCorrect = window.encryptAnswer(`${qId}_text`, textAns) === qState.correctHash.text;
+
             isCorrect = radioCorrect && textCorrect;
         } else if (qState.type === 'multi-mcq') {
             let allSubCorrect = true;
-            for (let i = 0; i < qState.correctAnswer.length; i++) {
-                const sub = qState.subStates[i];
+            for (let i = 0; i < qState.correctHash.length; i++) {
+                const sub = qState.substates[i];
                 if (sub.isCorrect) continue;
                 const el = document.querySelector(`input[name="${qId}_${i + 1}"]:checked`);
-                if (el && el.value === qState.correctAnswer[i]) {
+
+                if (el && window.encryptAnswer(`${qId}_${i + 1}`, el.value) === qState.correctHash[i]) {
                     sub.isCorrect = true;
                 } else {
                     allSubCorrect = false;
@@ -990,26 +1027,29 @@ async function submitExam() {
                 payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
                 payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
             } else if (qState.type === 'multi-mcq') {
+                /* STREAMING_CHUNK:抓取 multi-mcq 作答紀錄 */
                 payload.answers[qId] = [];
-                for (let i = 0; i < qState.correctAnswer.length; i++) {
+                // 這裡必須用 correctHash.length 避免讀取不到陣列長度而當機
+                for (let i = 0; i < qState.correctHash.length; i++) {
                     payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
                 }
             }
 
-            // 2. 進行強制自動批改 (不管學生有沒有按過檢查按鈕)
+            // 2. 進行強制自動批改 (使用加密亂碼比對)
+            /* STREAMING_CHUNK:執行加密比對與計分 */
             if (qState.type === 'mcq' || qState.type === 'fill-in') {
-                // 將兩邊轉為字串並去頭尾空白，避免型別問題
-                if (String(payload.answers[qId]).trim() === String(qState.correctAnswer)) {
+                if (window.encryptAnswer(qId, payload.answers[qId]) === qState.correctHash) {
                     earnedPoints = qState.maxPoints;
                 }
             } else if (qState.type === 'mixed') {
-                if (String(payload.answers[`${qId}_text`]).trim() === String(qState.correctAnswer.text) &&
-                    String(payload.answers[`${qId}_radio`]) === String(qState.correctAnswer.radio)) {
+                if (window.encryptAnswer(qId + '_text', payload.answers[`${qId}_text`]) === qState.correctHash.text &&
+                    window.encryptAnswer(qId + '_radio', payload.answers[`${qId}_radio`]) === qState.correctHash.radio) {
                     earnedPoints = qState.maxPoints;
                 }
             } else if (qState.type === 'multi-mcq') {
-                // 陣列比對
-                if (JSON.stringify(payload.answers[qId]) === JSON.stringify(qState.correctAnswer)) {
+                const hashedUserAnswers = payload.answers[qId].map((a, index) => window.encryptAnswer(`${qId}_${index + 1}`, a));
+                // 恢復您原本的邏輯：完全比對吻合，全對才給分
+                if (JSON.stringify(hashedUserAnswers) === JSON.stringify(qState.correctHash)) {
                     earnedPoints = qState.maxPoints;
                 }
             }

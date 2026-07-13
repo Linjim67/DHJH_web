@@ -501,8 +501,16 @@
                     }
 
                     const rawStudentData = myResultSnap.data();
-                    const theoryScores = rawStudentData.theoryScores || {};
+                    const rawTheoryScores = rawStudentData.theoryScores || {};
+
                     /* STREAMING_CHUNK:前端動態加總學生的各題得分為總分 */
+                    // 【修正】將資料庫中的題號 (例如 "q1", "q23-1") 自動去除 "q" 前綴，以便跟成績單的純數字格式對應
+                    const theoryScores = {};
+                    Object.keys(rawTheoryScores).forEach(key => {
+                        const cleanKey = key.replace(/^q/i, '');
+                        theoryScores[cleanKey] = rawTheoryScores[key];
+                    });
+
                     // 前端動態計算各大題得分與理論總分
                     let theoryTotalScore = 0;
                     const groupScores = {};
