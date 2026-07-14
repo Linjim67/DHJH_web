@@ -22,73 +22,44 @@
         }
 
         /* 隱藏滾動條但保留功能 */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
         /* 展開動畫過渡 */
         .accordion-content {
             display: grid;
             grid-template-rows: 0fr;
             transition: grid-template-rows 0.3s ease-out;
         }
-
         .accordion-content.is-open {
             grid-template-rows: 1fr;
         }
-
         .accordion-inner {
             overflow: hidden;
         }
-
+        
         /* 箭頭旋轉動畫 */
-        .chevron {
-            transition: transform 0.3s ease;
-        }
+        .chevron { transition: transform 0.3s ease; }
+        .is-open .chevron { transform: rotate(180deg); }
 
-        .is-open .chevron {
-            transform: rotate(180deg);
+        /* STREAMING_CHUNK:升級盒鬚圖專用高級樣式與動畫 */
+        /* 學生得分呼吸燈動畫 */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
         }
-
-        /* SVG 盒鬚圖樣式 */
-        .box-plot-whisker {
-            stroke: #64748b;
-            stroke-width: 1.5;
+        .student-glow {
+            transform-origin: center;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
-
-        .box-plot-box {
-            fill: #e0e7ff;
-            stroke: #3730a3;
-            stroke-width: 1.5;
-        }
-
-        .box-plot-median {
-            stroke: #3730a3;
-            stroke-width: 2;
-        }
-
-        .box-plot-student {
-            fill: #ef4444;
-            stroke: #fff;
-            stroke-width: 1;
-        }
-
-        .box-plot-student-line {
-            stroke: #ef4444;
-            stroke-width: 2.5;
-        }
+        
+        /* SVG 基礎線條樣式 (顏色改由 SVG 屬性直接控制以支援漸層) */
+        .box-plot-whisker { stroke-linecap: round; }
+        .box-plot-median { stroke-linecap: round; }
+        .box-plot-student-line { stroke-linecap: round; }
     </style>
-</head>
+    </head>
 
 <body class="p-4 md:p-8 text-gray-800">
 
@@ -163,71 +134,110 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ==========================================
-        // 核心繪圖函數：生成 SVG Box Plot (水平與垂直)
-        // ==========================================
+ // ==========================================
+    // 核心繪圖函數：生成 SVG Box Plot (水平與垂直)
+    // ==========================================
 
-        // 生成水平盒鬚圖 (大題用)
-        function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
-            // 計算百分比 (0-100)
-            const mapX = (val) => (val / maxScore) * 100;
+    /* STREAMING_CHUNK:重寫水平盒鬚圖，加入漸層與陰影 */
+    // 生成水平盒鬚圖 (大題用)
+    function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
+        const mapX = (val) => (val / maxScore) * 100;
+        const xMin = mapX(min), xMax = mapX(max);
+        const xLq = mapX(lq), xUq = mapX(uq), xMed = mapX(median);
+        const xScore = mapX(score);
 
-            const xMin = mapX(min), xMax = mapX(max);
-            const xLq = mapX(lq), xUq = mapX(uq), xMed = mapX(median);
-            const xScore = mapX(score);
+        // 確保箱子寬度至少有 2px，避免分數過於集中時箱子消失
+        const boxWidth = Math.max(2, xUq - xLq);
 
-            return `
+        return `
                 <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none" class="overflow-visible">
-                    <!-- Whisker 線 (Min 到 Max) -->
-                    <line x1="${xMin}" y1="20" x2="${xMax}" y2="20" class="box-plot-whisker" />
-                    <!-- Min/Max 邊界標記 -->
-                    <line x1="${xMin}" y1="12" x2="${xMin}" y2="28" class="box-plot-whisker" />
-                    <line x1="${xMax}" y1="12" x2="${xMax}" y2="28" class="box-plot-whisker" />
+                    <defs>
+                        <!-- 柔和的箱子漸層 -->
+                        <linearGradient id="boxGradH" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#e0e7ff" />
+                            <stop offset="100%" stop-color="#c7d2fe" />
+                        </linearGradient>
+                        <!-- 底部陰影 -->
+                        <filter id="shadowH" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#3730a3" flood-opacity="0.15"/>
+                        </filter>
+                    </defs>
+                    
+                    <!-- Whisker 虛線 (Min 到 Max) -->
+                    <line x1="${xMin}" y1="20" x2="${xMax}" y2="20" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="2 3" class="box-plot-whisker" />
+                    
+                    <!-- Min/Max 邊界端點 (加粗圓角) -->
+                    <line x1="${xMin}" y1="14" x2="${xMin}" y2="26" stroke="#64748b" stroke-width="2.5" class="box-plot-whisker" />
+                    <line x1="${xMax}" y1="14" x2="${xMax}" y2="26" stroke="#64748b" stroke-width="2.5" class="box-plot-whisker" />
+                    
+                    <!-- Box (Q1 到 Q3)，加入圓角 rx=4 與陰影 -->
+                    <rect x="${xLq}" y="12" width="${boxWidth}" height="16" rx="4" fill="url(#boxGradH)" stroke="#4f46e5" stroke-width="1.5" filter="url(#shadowH)" />
+                    
+                    <!-- 中位數 (Median) -->
+                    <line x1="${xMed}" y1="12" x2="${xMed}" y2="28" stroke="#312e81" stroke-width="2" class="box-plot-median" />
+                    
+                    <!-- 學生個人得分 (複合式地標設計) -->
+                    <g transform="translate(${xScore}, 20)">
+                        <!-- 呼吸燈外圈 -->
+                        <circle cx="0" cy="0" r="5" fill="#fecaca" class="student-glow" />
+                        <!-- 紅色基準線 -->
+                        <line x1="0" y1="-14" x2="0" y2="14" stroke="#ef4444" stroke-width="2" class="box-plot-student-line" />
+                        <!-- 實體紅點白框 -->
+                        <circle cx="0" cy="0" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+                    </g>
+                </svg>
+            `;
+    }
+
+    /* STREAMING_CHUNK:重寫垂直盒鬚圖，優化單題視覺 */
+    // 生成垂直盒鬚圖 (單題用，最高分恆定為 5 分)
+    function createVerticalBoxPlot(min, max, lq, median, uq, score) {
+        const mapY = (val) => 100 - ((val / 5) * 100);
+        const yMin = mapY(min), yMax = mapY(max);
+        const yLq = mapY(lq), yUq = mapY(uq), yMed = mapY(median);
+        const yScore = mapY(score);
+
+        const boxHeight = Math.max(2, yLq - yUq);
+
+        return `
+                <svg width="40" height="100" viewBox="0 0 40 100" class="overflow-visible drop-shadow-sm">
+                    <defs>
+                        <!-- 垂直箱子漸層 -->
+                        <linearGradient id="boxGradV" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#e0e7ff" />
+                            <stop offset="100%" stop-color="#c7d2fe" />
+                        </linearGradient>
+                        <filter id="shadowV" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#3730a3" flood-opacity="0.15"/>
+                        </filter>
+                        <!-- 紅點發光濾鏡 -->
+                        <filter id="glowRed">
+                            <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#ef4444" flood-opacity="0.4"/>
+                        </filter>
+                    </defs>
+
+                    <!-- 背景參考點 (0分, 5分) -->
+                    <circle cx="20" cy="0" r="1.5" fill="#cbd5e1" />
+                    <circle cx="20" cy="100" r="1.5" fill="#cbd5e1" />
+
+                    <!-- Whisker 虛線 (垂直) -->
+                    <line x1="20" y1="${yMin}" x2="20" y2="${yMax}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="2 3" class="box-plot-whisker" />
+                    
+                    <!-- Min/Max 邊界端點 -->
+                    <line x1="14" y1="${yMin}" x2="26" y2="${yMin}" stroke="#64748b" stroke-width="2.5" class="box-plot-whisker" />
+                    <line x1="14" y1="${yMax}" x2="26" y2="${yMax}" stroke="#64748b" stroke-width="2.5" class="box-plot-whisker" />
                     
                     <!-- Box (Q1 到 Q3) -->
-                    <rect x="${xLq}" y="10" width="${xUq - xLq}" height="20" rx="2" class="box-plot-box" />
+                    <rect x="12" y="${yUq}" width="16" height="${boxHeight}" rx="4" fill="url(#boxGradV)" stroke="#4f46e5" stroke-width="1.5" filter="url(#shadowV)" />
                     
                     <!-- 中位數 (Median) -->
-                    <line x1="${xMed}" y1="10" x2="${xMed}" y2="30" class="box-plot-median" />
+                    <line x1="12" y1="${yMed}" x2="28" y2="${yMed}" stroke="#312e81" stroke-width="2" class="box-plot-median" />
                     
-                    <!-- 學生個人得分 (紅色粗線) -->
-                    <line x1="${xScore}" y1="5" x2="${xScore}" y2="35" class="box-plot-student-line" />
+                    <!-- 學生個人得分 (帶陰影的高亮圓點) -->
+                    <circle cx="20" cy="${yScore}" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" filter="url(#glowRed)" />
                 </svg>
             `;
-        }
-
-        // 生成垂直盒鬚圖 (單題用，最高分恆定為 5 分)
-        function createVerticalBoxPlot(min, max, lq, median, uq, score) {
-            // Y 軸從上到下是 0 到 100，所以分數越高，Y 越小 (倒置)
-            const mapY = (val) => 100 - ((val / 5) * 100);
-
-            const yMin = mapY(min), yMax = mapY(max);
-            const yLq = mapY(lq), yUq = mapY(uq), yMed = mapY(median);
-            const yScore = mapY(score);
-
-            return `
-                <svg width="40" height="100" viewBox="0 0 40 100" class="overflow-visible drop-shadow-sm">
-                    <!-- 背景參考線 (0分, 5分) -->
-                    <line x1="5" y1="0" x2="35" y2="0" stroke="#f1f5f9" stroke-width="2" />
-                    <line x1="5" y1="100" x2="35" y2="100" stroke="#f1f5f9" stroke-width="2" />
-
-                    <!-- Whisker 線 (垂直) -->
-                    <line x1="20" y1="${yMin}" x2="20" y2="${yMax}" class="box-plot-whisker" />
-                    <!-- Min/Max 邊界標記 -->
-                    <line x1="12" y1="${yMin}" x2="28" y2="${yMin}" class="box-plot-whisker" />
-                    <line x1="12" y1="${yMax}" x2="28" y2="${yMax}" class="box-plot-whisker" />
-                    
-                    <!-- Box (Q1 到 Q3) - 注意 Y 軸起點是較高的分數(Uq) -->
-                    <rect x="8" y="${yUq}" width="24" height="${yLq - yUq}" rx="2" class="box-plot-box" />
-                    
-                    <!-- 中位數 (Median) -->
-                    <line x1="8" y1="${yMed}" x2="32" y2="${yMed}" class="box-plot-median" />
-                    
-                    <!-- 學生個人得分 (紅色圓點) -->
-                    <circle cx="20" cy="${yScore}" r="4.5" class="box-plot-student" />
-                </svg>
-            `;
-        }
+    }
 
         // ==========================================
         // 渲染畫面邏輯
