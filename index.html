@@ -91,6 +91,9 @@
             <div class="sidebar-item" data-page="transcript" data-title="暑期成績單" data-src="SummerTranscript.html" data-show="false">
                 <span class="material-symbols-outlined">analytics</span> 暑期成績單
             </div>
+            <div class="sidebar-item" data-page="exam-solution" data-title="暑期理論詳解" data-src="assets/2026-ST-sol.pdf">
+                <span class="material-symbols-outlined">picture_as_pdf</span> 暑期理論詳解
+            </div>
             <div class="sidebar-item" data-page="auction" data-title="暑期競標" data-show="true">
                 <span class="material-symbols-outlined">gavel</span> 暑期競標
             </div>
@@ -350,6 +353,8 @@
 
         const navExam = document.querySelector('[data-page="exam-answer"]');
         const navTranscript = document.querySelector('[data-page="transcript"]');
+        const navAuction = document.querySelector('[data-page="auction"]');
+        const navSolution = document.querySelector('[data-page="exam-solution"]');
 
         onAuthStateChanged(auth, async (user) => {
             if (user && !user.isAnonymous) {
@@ -376,13 +381,15 @@
                     const resultRef = doc(db, 'artifacts', appId, 'users', user.uid, 'exam_results', 'theory_test_1');
                     const snap = await getDoc(resultRef);
                     if (snap.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true') {
-                        // 已交卷：隱藏作答區，顯示成績單
                         if (navExam) navExam.style.display = 'none';
                         if (navTranscript) navTranscript.style.display = 'flex';
+                        if (navAuction) navAuction.style.display = 'flex';
+                        if (navSolution) navSolution.style.display = 'flex';
                     } else {
-                        // 未交卷：顯示作答區，隱藏成績單
                         if (navExam) navExam.style.display = 'flex';
                         if (navTranscript) navTranscript.style.display = 'none';
+                        if (navAuction) navAuction.style.display = 'none';
+                        if (navSolution) navSolution.style.display = 'none';
                     }
                 } catch (e) {
                     console.error("無法檢查交卷狀態:", e);
@@ -396,6 +403,8 @@
 
                 if (navExam) navExam.style.display = 'flex';
                 if (navTranscript) navTranscript.style.display = 'none';
+                if (navAuction) navAuction.style.display = 'none';
+                if (navSolution) navSolution.style.display = 'none';
 
                 // 如果登出時，畫面停在需要權限的子網站，強制跳回首頁
                 const activePage = document.querySelector('.sidebar-item.active').getAttribute('data-page');
@@ -415,7 +424,7 @@
                 if (navTranscript) navTranscript.click();
             }
         });
-        
+
         // 登出
         logoutBtn.addEventListener('click', async () => {
             await signOut(auth);

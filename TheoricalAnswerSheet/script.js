@@ -1013,50 +1013,63 @@ async function submitExam() {
         const qState = questionStates[qId];
         let earnedPoints = 0;
 
-        if (qId === 'q21') {
-            // 化學題 (q21) 因為批改邏輯非常複雜 (涉及方程式解析)
-            // 因此保留原設定：依照學生點擊檢查後的狀態來給分
-            earnedPoints = qState.isCorrect ? qState.maxPoints : 0;
-        } else {
-            // 1. 抓取該題學生「目前畫面上」的答案
-            if (qState.type === 'mcq') {
-                payload.answers[qId] = getRadioValue(qId);
-            } else if (qState.type === 'fill-in') {
-                payload.answers[qId] = document.getElementById(qId)?.value || "";
-            } else if (qState.type === 'mixed') {
-                payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
-                payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
-            } else if (qState.type === 'multi-mcq') {
-                /* STREAMING_CHUNK:抓取 multi-mcq 作答紀錄 */
-                payload.answers[qId] = [];
-                // 這裡必須用 correctHash.length 避免讀取不到陣列長度而當機
-                for (let i = 0; i < qState.correctHash.length; i++) {
-                    payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
-                }
+        try {
+            if (qState.isCorrect) {
+                earnedPoints = qState.maxPoints;
             }
+            else if (qId === 'q21') {
+                earnedPoints = 0;
+            }
+            else if (qState.maxPoints > 0) {
+                // 如果未曾手動檢查，啟動強制自動批改
+                // 1. 抓取該題學生「目前畫面上」的答案
+                if (qState.type === 'mcq') {
+                    payload.answers[qId] = getRadioValue(qId);
+                    if (qState.correctHash && window.encryptAnswer(qId, payload.answers[qId]) === qState.correctHash) {
+                        earnedPoints = qState.maxPoints;
+                    }
+                } else if (qState.type === 'fill-in') {
+                    payload.answers[qId] = document.getElementById(qId)?.value || "";
+                    if (qState.correctHash && window.encryptAnswer(qId, payload.answers[qId]) === qState.correctHash) {
+                        earnedPoints = qState.maxPoints;
+                    }
+                } else if (qState.type === 'mixed') {
+                    payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
+                    payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
 
-            // 2. 進行強制自動批改 (使用加密亂碼比對)
-            /* STREAMING_CHUNK:執行加密比對與計分 */
-            if (qState.type === 'mcq' || qState.type === 'fill-in') {
-                if (window.encryptAnswer(qId, payload.answers[qId]) === qState.correctHash) {
-                    earnedPoints = qState.maxPoints;
-                }
-            } else if (qState.type === 'mixed') {
-                if (window.encryptAnswer(qId + '_text', payload.answers[`${qId}_text`]) === qState.correctHash.text &&
-                    window.encryptAnswer(qId + '_radio', payload.answers[`${qId}_radio`]) === qState.correctHash.radio) {
-                    earnedPoints = qState.maxPoints;
-                }
-            } else if (qState.type === 'multi-mcq') {
-                const hashedUserAnswers = payload.answers[qId].map((a, index) => window.encryptAnswer(`${qId}_${index + 1}`, a));
-                // 恢復您原本的邏輯：完全比對吻合，全對才給分
-                if (JSON.stringify(hashedUserAnswers) === JSON.stringify(qState.correctHash)) {
-                    earnedPoints = qState.maxPoints;
+                    if (qState.correctHash &&
+                        window.encryptAnswer(qId + '_text', payload.answers[`${qId}_text`]) === qState.correctHash.text &&
+                        window.encryptAnswer(qId + '_radio', payload.answers[`${qId}_radio`]) === qState.correctHash.radio) {
+                        earnedPoints = qState.maxPoints;
+                    }
+                } else if (qState.type === 'multi-mcq') {
+                    payload.answers[qId] = [];
+                    // 防呆：萬一忘了設 correctHash，改抓 correctAnswer 長度避免當機
+                    const loopLen = qState.correctHash ? qState.correctHash.length : (qState.correctAnswer ? qState.correctAnswer.length : 0);
+
+                    for (let i = 0; i < loopLen; i++) {
+                        payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
+                    }
+
+                    if (qState.correctHash) {
+                        const hashedUserAnswers = payload.answers[qId].map((a, index) => window.encryptAnswer(`${qId}_${index + 1}`, a));
+                        if (JSON.stringify(hashedUserAnswers) === JSON.stringify(qState.correctHash)) {
+                            earnedPoints = qState.maxPoints;
+                        }
+                    }
                 }
             }
+        } catch (err) {
+            console.error(`自動批改 ${qId} 時發生預期外錯誤:`, err);
         }
 
-        // 3. 將結算完的最終得分寫入 payload
         payload.scores[qId] = earnedPoints;
+
+        const cleanKey = qId.replace(/^q/i, '');
+        if (cleanKey !== qId) {
+            payload.scores[cleanKey] = earnedPoints;
+        }
+
         totalScore += earnedPoints;
     });
 
@@ -1093,11 +1106,9 @@ async function submitExam() {
 
         const examSection = document.getElementById('exam_section');
         if (examSection) {
-            // 繪製精美的完成提示框
             examSection.innerHTML = `
                 <div style="text-align:center; padding: 120px 20px; animation: badgePop 0.5s cubic-bezier(0.2, 1.5, 0.5, 1) forwards;">
-                    <span class="material-symbols-outlined" style="font-size: 80px; color: #10b981; margin-bottom: 20px;">task_alt</span>
-                    <h2 style="color: #1f2937; font-size: 2rem; font-weight: bold; margin-bottom: 12px;">✅ 交卷成功！</h2>
+                    <h2 style="color: #1f2937; font-size: 2rem; font-weight: bold; margin-bottom: 12px;">交卷成功</h2>
                     <p style="color: #6b7280; font-size: 1.1rem; line-height: 1.6;">
                         您的成績與作答紀錄已安全送出。<br>
                         系統將於 <span id="countdown_timer" style="color: #3b82f6; font-weight: bold; font-size: 1.3rem;">3</span> 秒後為您導向「暑期成績單」...
@@ -1110,10 +1121,10 @@ async function submitExam() {
             const timerEl = document.getElementById('countdown_timer');
             const countdown = setInterval(() => {
                 count--;
+                const timerEl = document.getElementById('countdown_timer');
                 if (timerEl) timerEl.innerText = count;
                 if (count <= 0) {
                     clearInterval(countdown);
-                    // 通知主網站 (portal) 切換頁面
                     if (window.parent) {
                         window.parent.postMessage({ action: 'exam_submitted' }, '*');
                     }
@@ -1133,7 +1144,7 @@ async function submitExam() {
             btn.innerText = "確認交卷";
         }
         if (statusMsg) {
-            statusMsg.innerText = "❌ 交卷失敗，請檢查網路連線後再試一次。";
+            statusMsg.innerText = "交卷失敗，請檢查網路連線後再試一次。";
             statusMsg.style.color = "var(--danger-color)";
         }
         showAlert("錯誤", "傳送失敗，請稍後重試。如果持續失敗，請舉手告監考老師。");
