@@ -1159,6 +1159,12 @@ function addChemFormula() {
         return;
     }
 
+    let pool = document.getElementById('chem_pool');
+    if (!pool) {
+        showAlert("HTML 標籤缺失", "找不到素材區！\n請確認您的 HTML 程式碼中，素材區是否有加上 id=\"chem_pool\"");
+        return;
+    }
+
     console.log("系統：成功擷取化學式：", val);
     createChemChip(val, pool.id);
     input.value = '';
