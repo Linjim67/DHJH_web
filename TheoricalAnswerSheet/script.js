@@ -28,7 +28,7 @@ const questionStates = {
 
     q21: {
         type: 'chem', attempts: 0, maxPoints: 5, isCorrect: false,
-        correctHash: {
+        correctAnswer: {
             reactants: { "Cr2O7^2-": 4, "C4H10O": 1, "H^+": 32 },
             products: { "Cr^3+": 8, "CO2": 4, "H2O": 21 }
         }
@@ -83,7 +83,7 @@ window.addChemFormula = addChemFormula;
 window.addCustomChem = addCustomChem;
 window.executeChemCheck = executeChemCheck;
 window.restoreChemChip = restoreChemChip;
-window.submitExam = submitExam;
+
 window.saveDraft = saveDraft;
 window.allowDrop = allowDrop;
 window.dropToPool = dropToPool;
@@ -1093,7 +1093,32 @@ async function submitExam() {
 
         const examSection = document.getElementById('exam_section');
         if (examSection) {
-            examSection.innerHTML = '<div style="text-align:center; padding: 100px 20px;"><h2 style="color: var(--primary-color);">✅ 測驗已結束，交卷成功！</h2><p style="color: var(--on-surface-de-emphasis); margin-top: 15px; font-size: 1.1rem;">您的成績與作答紀錄已安全送出，請關閉此網頁並前往「暑期成績單」查看結果。</p></div>';
+            // 繪製精美的完成提示框
+            examSection.innerHTML = `
+                <div style="text-align:center; padding: 120px 20px; animation: badgePop 0.5s cubic-bezier(0.2, 1.5, 0.5, 1) forwards;">
+                    <span class="material-symbols-outlined" style="font-size: 80px; color: #10b981; margin-bottom: 20px;">task_alt</span>
+                    <h2 style="color: #1f2937; font-size: 2rem; font-weight: bold; margin-bottom: 12px;">✅ 交卷成功！</h2>
+                    <p style="color: #6b7280; font-size: 1.1rem; line-height: 1.6;">
+                        您的成績與作答紀錄已安全送出。<br>
+                        系統將於 <span id="countdown_timer" style="color: #3b82f6; font-weight: bold; font-size: 1.3rem;">3</span> 秒後為您導向「暑期成績單」...
+                    </p>
+                </div>
+            `;
+
+            // 執行 3 秒倒數計時
+            let count = 3;
+            const timerEl = document.getElementById('countdown_timer');
+            const countdown = setInterval(() => {
+                count--;
+                if (timerEl) timerEl.innerText = count;
+                if (count <= 0) {
+                    clearInterval(countdown);
+                    // 通知主網站 (portal) 切換頁面
+                    if (window.parent) {
+                        window.parent.postMessage({ action: 'exam_submitted' }, '*');
+                    }
+                }
+            }, 1000);
         }
 
         if (statusMsg) {
@@ -1111,7 +1136,7 @@ async function submitExam() {
             statusMsg.innerText = "❌ 交卷失敗，請檢查網路連線後再試一次。";
             statusMsg.style.color = "var(--danger-color)";
         }
-        showAlert("錯誤", "傳送失敗，請稍後重試。如果持續失敗，請聯絡助教。");
+        showAlert("錯誤", "傳送失敗，請稍後重試。如果持續失敗，請舉手告監考老師。");
     }
 }
 
@@ -1119,9 +1144,7 @@ async function submitExam() {
 // 模組九：第 21 題 專屬化學反應式邏輯 (完美對接 HTML 與拖曳功能)
 // ==========================================
 function addChemFormula() {
-    console.log("【系統】按鈕觸發：開始尋找化學式輸入框");
 
-    // 【修正】：完美對接您 HTML 的 id="chem_input"
     let input = document.getElementById('chem_input') || document.getElementById('custom_chem_input');
 
     if (!input) {
@@ -1136,13 +1159,7 @@ function addChemFormula() {
         return;
     }
 
-    let pool = document.getElementById('chem_pool');
-    if (!pool) {
-        showAlert("HTML 標籤缺失", "找不到素材區！\n請確認您的 HTML 程式碼中，素材區是否有加上 id=\"chem_pool\"");
-        return;
-    }
-
-    console.log("【系統】成功擷取化學式：", val);
+    console.log("系統：成功擷取化學式：", val);
     createChemChip(val, pool.id);
     input.value = '';
     saveDraft();

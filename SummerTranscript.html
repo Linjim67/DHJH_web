@@ -452,13 +452,30 @@
                 questions: {}
             };
 
-        // 自動產生 1~30 題的單題假數據
-        const allQuestionIds = Object.values(QUESTION_GROUPS).flatMap(group => group.questions);
+            // 自動產生 1~30 題的單題假數據
+            const allQuestionIds = Object.values(QUESTION_GROUPS).flatMap(group => group.questions);
 
-        allQuestionIds.forEach(qId => {
+            // 準備幾種不同難度的分數分佈模板，讓每一題的盒鬚圖高低錯落有致
+            const distributionTemplates = [
+                { median: 4, high: 5, low: 1, uq: 5, lq: 3 }, // 簡單題 (箱子偏高)
+                { median: 3, high: 5, low: 0, uq: 4, lq: 2 }, // 中等題 (箱子置中)
+                { median: 2, high: 5, low: 0, uq: 3, lq: 1 }, // 偏難題 (箱子偏低)
+                { median: 5, high: 5, low: 2, uq: 5, lq: 4 }, // 送分題 (箱子極高)
+                { median: 4, high: 5, low: 0, uq: 5, lq: 2 }  // 鑑別度高的題目 (箱子很長)
+            ];
+
+            allQuestionIds.forEach(qId => {
+                // 每跑一題，就隨機抽選一個上面的模板
+                const template = distributionTemplates[Math.floor(Math.random() * distributionTemplates.length)];
+
                 fakeData.questions[qId] = {
-                    mean: +(3.2 + (Math.random() * 1.5 - 0.7)).toFixed(1),
-                    median: 4, high: 5, low: 0, uq: 5, lq: 2
+                    // 讓平均分在該題的中位數附近隨機浮動
+                    mean: +(template.median - 0.3 + Math.random() * 0.6).toFixed(1),
+                    median: template.median,
+                    high: template.high,
+                    low: template.low,
+                    uq: template.uq,
+                    lq: template.lq
                 };
             });
 

@@ -321,7 +321,6 @@
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
 
-                // 🛑 修正這裡！將存檔路徑改為符合您安全性規則的階層
                 const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
                 await setDoc(userRef, {
                     name: user.displayName,
@@ -349,7 +348,10 @@
         const userAvatarImg = document.getElementById('user-avatar');
         const logoutBtn = document.getElementById('logout-btn');
 
-        onAuthStateChanged(auth, (user) => {
+        const navExam = document.querySelector('[data-page="exam-answer"]');
+        const navTranscript = document.querySelector('[data-page="transcript"]');
+
+        onAuthStateChanged(auth, async (user) => {
             if (user && !user.isAnonymous) {
                 // 已登入
                 currentUser = user;
@@ -369,11 +371,31 @@
                     userAvatarImg.classList.add('hidden');
                     userAvatarText.classList.remove('hidden');
                 }
+                // 檢查是否已經交卷，動態切換側邊欄
+                try {
+                    const resultRef = doc(db, 'artifacts', appId, 'users', user.uid, 'exam_results', 'theory_test_1');
+                    const snap = await getDoc(resultRef);
+                    if (snap.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true') {
+                        // 已交卷：隱藏作答區，顯示成績單
+                        if (navExam) navExam.style.display = 'none';
+                        if (navTranscript) navTranscript.style.display = 'flex';
+                    } else {
+                        // 未交卷：顯示作答區，隱藏成績單
+                        if (navExam) navExam.style.display = 'flex';
+                        if (navTranscript) navTranscript.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error("無法檢查交卷狀態:", e);
+                }
+
             } else {
                 // 未登入
                 currentUser = null;
                 loginBtn.classList.remove('hidden');
                 userProfile.classList.add('hidden');
+
+                if (navExam) navExam.style.display = 'flex';
+                if (navTranscript) navTranscript.style.display = 'none';
 
                 // 如果登出時，畫面停在需要權限的子網站，強制跳回首頁
                 const activePage = document.querySelector('.sidebar-item.active').getAttribute('data-page');
@@ -383,6 +405,17 @@
             }
         });
 
+        // 接收子系統 (Iframe) 傳來的交卷完畢訊息
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.action === 'exam_submitted') {
+                // 1. 隱藏作答區，顯示成績單
+                if (navExam) navExam.style.display = 'none';
+                if (navTranscript) navTranscript.style.display = 'flex';
+                // 2. 自動點擊「成績單」按鈕進行無縫跳轉
+                if (navTranscript) navTranscript.click();
+            }
+        });
+        
         // 登出
         logoutBtn.addEventListener('click', async () => {
             await signOut(auth);
