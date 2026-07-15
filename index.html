@@ -351,7 +351,7 @@
         loginBtn.addEventListener('click', openModal);
         closeModalBtn.addEventListener('click', closeModal);
 
-        // 執行 Google 登入
+         // 執行 Google 登入
         googleLoginBtn.addEventListener('click', async () => {
             authError.classList.add('hidden');
             googleLoginBtn.innerText = '登入處理中...';
@@ -361,6 +361,21 @@
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
 
+                // --- 🛡️ 關鍵防護：在寫入資料庫與關閉視窗前，立刻檢查信箱權限 ---
+                const email = user.email || "";
+                const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
+                    email.endsWith('@g.ntu.edu.tw') ||
+                    email === 'linjim267@gmail.com';
+
+                if (!isAuthorized) {
+                    // 1. 如果不合格，立刻強制登出
+                    await signOut(auth);
+                    // 2. 拋出自訂錯誤，中斷下方寫入資料庫與 closeModal() 的動作
+                    throw new Error('unauthorized_domain');
+                }
+                // -------------------------------------------------------------
+
+                // 通過檢查，才將資料寫入 Firestore
                 const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
                 await setDoc(userRef, {
                     name: user.displayName,
@@ -371,11 +386,24 @@
                 closeModal();
             } catch (error) {
                 console.error("Google 登入錯誤:", error);
-                if (error.code !== 'auth/popup-closed-by-user') {
+
+                // 根據錯誤類型顯示對應的紅色警告框
+                if (error.message === 'unauthorized_domain') {
+                    showError('權限不足：請使用學校或指定信箱登入！');
+                } else if (error.code !== 'auth/popup-closed-by-user') {
                     showError('登入失敗，請檢查網路或稍後再試。');
                 }
             } finally {
-                googleLoginBtn.innerHTML = `使用 Google 帳號登入`;
+                // 還原 Google 彩色圖示與按鈕狀態
+                googleLoginBtn.innerHTML = `
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                使用 Google 帳號登入
+            `;
                 googleLoginBtn.disabled = false;
             }
         });
@@ -385,9 +413,12 @@
         const userProfile = document.getElementById('user-profile');
         const userNameDisplay = document.getElementById('user-name');
         const userAvatarText = document.getElementById('user-avatar-text');
-        const userAvatarImg = document.getElementById('user-avatar');
         const logoutBtn = document.getElementById('logout-btn');
 
+        // 取得所有側邊欄按鈕
+        const navHome = document.querySelector('[data-page="home"]');
+        const navNotes = document.querySelector('[data-page="notes"]');
+        const navExamPaper = document.querySelector('[data-page="exam-paper"]');
         const navExam = document.querySelector('[data-page="exam-answer"]');
         const navTranscript = document.querySelector('[data-page="transcript"]');
         const navAuction = document.querySelector('[data-page="auction"]');
@@ -395,7 +426,7 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user && !user.isAnonymous) {
-                // 已登入
+                // 白名單二次驗證
                 const email = user.email || "";
                 const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
                     email.endsWith('@g.ntu.edu.tw') ||
@@ -406,33 +437,28 @@
                     return;
                 }
 
-                currentUser = user;
                 loginBtn.classList.add('hidden');
                 userProfile.classList.remove('hidden');
 
                 const displayName = user.displayName || user.email.split('@')[0];
                 userNameDisplay.innerText = displayName;
+                userAvatarText.innerText = displayName.charAt(0).toUpperCase();
 
-                // 如果 Google 有提供大頭貼就顯示，沒有就顯示字母
-                if (user.photoURL) {
-                    userAvatarImg.src = user.photoURL;
-                    userAvatarImg.classList.remove('hidden');
-                    userAvatarText.classList.add('hidden');
-                } else {
-                    userAvatarText.innerText = displayName.charAt(0).toUpperCase();
-                    userAvatarImg.classList.add('hidden');
-                    userAvatarText.classList.remove('hidden');
-                }
-                // 檢查是否已經交卷，動態切換側邊欄
+                // 登入後：恢復顯示基本的常駐選項
+                if (navNotes) navNotes.style.display = 'flex';
+                if (navExamPaper) navExamPaper.style.display = 'flex';
+
                 try {
                     const resultRef = doc(db, 'artifacts', appId, 'users', user.uid, 'exam_results', 'theory_test_1');
                     const snap = await getDoc(resultRef);
                     if (snap.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true') {
+                        // 已交卷：隱藏作答區，【顯示】解析、成績單與競標
                         if (navExam) navExam.style.display = 'none';
                         if (navTranscript) navTranscript.style.display = 'flex';
                         if (navAuction) navAuction.style.display = 'flex';
                         if (navSolution) navSolution.style.display = 'flex';
                     } else {
+                        // 未交卷：顯示作答區，【隱藏】解析、成績單與競標
                         if (navExam) navExam.style.display = 'flex';
                         if (navTranscript) navTranscript.style.display = 'none';
                         if (navAuction) navAuction.style.display = 'none';
@@ -443,20 +469,20 @@
                 }
 
             } else {
-                // 未登入
-                currentUser = null;
                 loginBtn.classList.remove('hidden');
                 userProfile.classList.add('hidden');
 
-                if (navExam) navExam.style.display = 'flex';
+                // 未登入時：【一律只顯示首頁】，隱藏其他所有選項
+                if (navNotes) navNotes.style.display = 'none';
+                if (navExamPaper) navExamPaper.style.display = 'none';
+                if (navExam) navExam.style.display = 'none';
                 if (navTranscript) navTranscript.style.display = 'none';
                 if (navAuction) navAuction.style.display = 'none';
                 if (navSolution) navSolution.style.display = 'none';
 
-                // 如果登出時，畫面停在需要權限的子網站，強制跳回首頁
-                const activePage = document.querySelector('.sidebar-item.active').getAttribute('data-page');
-                if (activePage !== 'home') {
-                    document.querySelector('[data-page="home"]').click();
+                // 如果學生在其他頁面登出，強制跳轉回首頁儀表板
+                if (navHome && !navHome.classList.contains('active')) {
+                    navHome.click();
                 }
             }
         });
