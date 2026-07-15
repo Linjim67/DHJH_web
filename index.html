@@ -79,7 +79,7 @@
                 <span class="material-symbols-outlined">home</span> 首頁
             </div>
             <div class="sidebar-item" data-page="notes" data-title="暑期講義題目" data-src="SummerNotes.html">
-                <span class="material-symbols-outlined">menu_book</span> 暑期題目
+                <span class="material-symbols-outlined">menu_book</span> 暑期講義題目
             </div>
             <div class="sidebar-item" data-page="exam-paper" data-title="暑期課程錄影" data-show="false">
                 <span class="material-symbols-outlined">description</span> 暑期課程錄影
@@ -396,6 +396,16 @@
         onAuthStateChanged(auth, async (user) => {
             if (user && !user.isAnonymous) {
                 // 已登入
+                const email = user.email || "";
+                const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
+                    email.endsWith('@g.ntu.edu.tw') ||
+                    email === 'linjim267@gmail.com';
+
+                if (!isAuthorized) {
+                    await signOut(auth);
+                    return;
+                }
+
                 currentUser = user;
                 loginBtn.classList.add('hidden');
                 userProfile.classList.remove('hidden');
