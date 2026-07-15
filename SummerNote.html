@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暑期講義題目</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 隱藏滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Modal 淡入動畫 */
+        .modal-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* PDF 閱讀器外框 */
+        .pdf-wrapper {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+        }
+    </style>
+</head>
+
+<body class="p-6 md:p-10 text-gray-800">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <span class="material-symbols-outlined text-blue-600 text-4xl">menu_book</span>
+                暑期講義與練習題
+            </h1>
+            <p class="text-gray-500 mt-2 ml-1">點擊下方卡片即可開啟線上閱讀器。灰色卡片代表系統尚在建置該檔案。</p>
+        </div>
+
+        <!-- 卡片網格 -->
+        <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 卡片會由 JS 動態生成 -->
+        </div>
+    </div>
+
+    <div id="pdf-modal"
+        class="hidden fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center opacity-0 transition-opacity duration-300">
+        <div
+            class="bg-white w-11/12 md:w-4/5 h-[90vh] rounded-[24px] shadow-2xl flex flex-col modal-fade-in overflow-hidden">
+
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                    <span id="modal-title-text">載入中...</span>
+                </h3>
+                <button id="close-modal-btn"
+                    class="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500 hover:text-gray-800">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body (PDF Viewer) -->
+            <div class="flex-1 p-4 bg-gray-100" oncontextmenu="return false;">
+                <div class="pdf-wrapper">
+                    <!-- 加上 #toolbar=0 防止下載與列印 -->
+                    <iframe id="pdf-iframe" src="" class="w-full h-full border-none"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 講義清單與對應的檔名 (請確保實體檔案放在專案根目錄的 assets/ 底下)
+        const pdfFiles = [
+            { title: "第一日理論", filename: "Exercise-D1.pdf" },
+            { title: "第二日理論", filename: "Exercise-D2.pdf" },
+            { title: "第四日理論", filename: "Exercise-D4.pdf" },
+            { title: "第七日理論", filename: "Exercise-D7.pdf" },
+            { title: "課後練習題", filename: "Exercise-all.pdf" },
+            { title: "實驗理論題", filename: "exercise-exp.pdf" }
+        ];
+
+        const container = document.getElementById('cards-container');
+        const modal = document.getElementById('pdf-modal');
+        const iframe = document.getElementById('pdf-iframe');
+        const modalTitleText = document.getElementById('modal-title-text');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // 關閉 Modal
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                iframe.src = ""; // 清空 iframe 以釋放記憶體
+            }, 300);
+        });
+
+        // 開啟 Modal
+        function openPdfViewer(title, filename) {
+            modalTitleText.innerText = title;
+            iframe.src = `Assets/${filename}#toolbar=0&navpanes=0`;
+            
+            modal.classList.remove('hidden');
+            // 延遲一點以觸發 transition
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        // 渲染單張卡片
+        function renderCard(item, status) {
+            const card = document.createElement('div');
+            
+            if (status === 'loading') {
+                // 載入中狀態 (骨架屏)
+                card.className = "bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 animate-pulse";
+                card.innerHTML = `
+                    <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                    <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+                    <div class="h-4 bg-gray-100 rounded w-2/3"></div>
+                `;
+            } else if (status === 'available') {
+                // 檔案存在：可點擊狀態
+                card.className = "bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-1">${item.title}</h3>
+                        <p class="text-sm font-mono text-gray-400">${item.filename}</p>
+                    </div>
+                    <div class="mt-6 flex items-center text-blue-600 font-semibold text-sm">
+                        開啟閱讀器 <span class="material-symbols-outlined ml-1 text-lg group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+                    </div>
+                `;
+                card.onclick = () => openPdfViewer(item.title, item.filename);
+            } else {
+                // 檔案不存在：施工中狀態
+                card.className = "bg-gray-50 p-6 rounded-2xl border border-gray-200 shadow-inner flex flex-col justify-between opacity-80 cursor-not-allowed";
+                card.innerHTML = `
+                    <div>
+                        <div class="w-12 h-12 bg-gray-200 text-gray-400 rounded-xl flex items-center justify-center mb-4">
+                            <span class="material-symbols-outlined text-2xl">construction</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-500 mb-1">${item.title}</h3>
+                        <p class="text-sm font-mono text-gray-400">${item.filename}</p>
+                    </div>
+                    <div class="mt-6 inline-flex items-center w-max px-3 py-1 bg-yellow-50 text-yellow-700 font-bold text-xs rounded-lg border border-yellow-200">
+                        🚧 仍在建造中
+                    </div>
+                `;
+            }
+            return card;
+        }
+
+        // 執行主程式：非同步探測並渲染
+        async function initializeNotes() {
+            // 1. 先畫出 6 張載入中的卡片
+            const cardElements = pdfFiles.map(item => {
+                const el = renderCard(item, 'loading');
+                container.appendChild(el);
+                return { item, el };
+            });
+
+            // 2. 對每個檔案發送 HEAD 請求檢查是否存在
+            cardElements.forEach(async ({ item, el }) => {
+                try {
+                    const response = await fetch(`Assets/${item.filename}`, { method: 'HEAD' });
+                    
+                    // 根據 HTTP 狀態碼判斷 (200 代表檔案存在)
+                    if (response.ok) {
+                        const newEl = renderCard(item, 'available');
+                        container.replaceChild(newEl, el);
+                    } else {
+                        const newEl = renderCard(item, 'unavailable');
+                        container.replaceChild(newEl, el);
+                    }
+                } catch (error) {
+                    // 網路錯誤或 CORS 阻擋，視為不存在
+                    const newEl = renderCard(item, 'unavailable');
+                    container.replaceChild(newEl, el);
+                }
+            });
+        }
+
+        // 啟動
+        initializeNotes();
+    </script>
+</body>
+
+</html>

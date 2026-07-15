@@ -88,7 +88,7 @@
                 <div class="w-0.5 h-4 bg-[#5b697b] rounded-full"></div> 中位數 (Median)
             </div>
             <div class="flex items-center gap-1.5">
-                <div class="w-4 h-4 bg-[#a5b4fc] border-2 border-[#1e3a8a] rounded-[3px]"></div> 您的得分
+                <div class="w-4 h-4 bg-[#a5b4fc] border-2 border-[#1e3a8a] rounded-[3px] opacity-75"></div> 您的得分
             </div>
         </div>
 
@@ -156,8 +156,8 @@
                     
                     <!-- 學生個人得分 (固定像素的圓角方塊，利用 SVG 嵌套置中避免變形) -->
                     <svg x="${xScore}%" y="20" width="20" height="20" style="overflow:visible;">
-                        <!-- 將 -10, -10 當作起點，以達成完美置中對齊 -->
-                        <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#a5b4fc" stroke="#1e3a8a" stroke-width="2.5" />
+                        <!-- STREAMING_CHUNK:加入 opacity 增加水平圖表透明度 -->
+                        <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#a5b4fc" stroke="#1e3a8a" stroke-width="2.5" opacity="0.75" />
                     </svg>
                 </svg>
             `;
@@ -196,7 +196,8 @@
                     
                     <!-- 學生個人得分 (固定像素圓角方塊) -->
                     <svg x="20" y="${yScore}%" width="20" height="20" style="overflow:visible;">
-                        <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#a5b4fc" stroke="#1e3a8a" stroke-width="2.5" />
+                        <!-- STREAMING_CHUNK:加入 opacity 增加垂直圖表透明度 -->
+                        <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#a5b4fc" stroke="#1e3a8a" stroke-width="2.5" opacity="0.75" />
                     </svg>
                 </svg>
             `;
