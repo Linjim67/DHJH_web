@@ -461,14 +461,15 @@
         } else {
             onAuthStateChanged(auth, async (user) => {
                 if (!user || user.isAnonymous) {
-                    document.body.innerHTML = `
-                        <div class="flex items-center justify-center h-screen bg-gray-50">
+                    // ⚠️ 關鍵修正：只隱藏內容，不摧毀整個 DOM 結構
+                    document.getElementById('transcript-content').classList.add('hidden');
+                    document.getElementById('loading').innerHTML = `
                             <div class="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
                                 <span class="material-symbols-outlined text-red-400 text-5xl mb-4">lock</span>
                                 <h2 class="text-xl font-bold text-gray-800">請先登入</h2>
-                                <p class="text-gray-500 mt-2">您必須從主網站登入後才能查看成績單。</p>
-                            </div>
-                        </div>`;
+                                <p class="text-gray-500 mt-2">正在同步登入狀態... 若長時間未解鎖，請確認您已在主網站登入。</p>
+                            </div>`;
+                    document.getElementById('loading').classList.remove('hidden');
                     return;
                 }
 

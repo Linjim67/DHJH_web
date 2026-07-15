@@ -361,7 +361,7 @@
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
 
-                // --- 🛡️ 關鍵防護：在寫入資料庫與關閉視窗前，立刻檢查信箱權限 ---
+                // --- 關鍵防護：在寫入資料庫與關閉視窗前，立刻檢查信箱權限 ---
                 const email = user.email || "";
                 const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
                     email.endsWith('@g.ntu.edu.tw') ||
@@ -373,7 +373,6 @@
                     // 2. 拋出自訂錯誤，中斷下方寫入資料庫與 closeModal() 的動作
                     throw new Error('unauthorized_domain');
                 }
-                // -------------------------------------------------------------
 
                 // 通過檢查，才將資料寫入 Firestore
                 const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
@@ -389,7 +388,7 @@
 
                 // 根據錯誤類型顯示對應的紅色警告框
                 if (error.message === 'unauthorized_domain') {
-                    showError('權限不足：請使用學校或指定信箱登入！');
+                    showError('請使用學校信箱(.thjh)登入！');
                 } else if (error.code !== 'auth/popup-closed-by-user') {
                     showError('登入失敗，請檢查網路或稍後再試。');
                 }
@@ -424,65 +423,40 @@
         const navAuction = document.querySelector('[data-page="auction"]');
         const navSolution = document.querySelector('[data-page="exam-solution"]');
 
-        onAuthStateChanged(auth, async (user) => {
+        let authWarningDiv = null;
+
+        onAuthStateChanged(auth, (user) => {
+            // 確認有使用者，且不是匿名登入
             if (user && !user.isAnonymous) {
-                // 白名單二次驗證
-                const email = user.email || "";
-                const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
-                    email.endsWith('@g.ntu.edu.tw') ||
-                    email === 'linjim267@gmail.com';
 
-                if (!isAuthorized) {
-                    await signOut(auth);
-                    return;
+                // 如果有警告視窗，立刻移除，還原背後的考卷畫面
+                if (authWarningDiv) {
+                    authWarningDiv.remove();
+                    authWarningDiv = null;
                 }
+                document.body.style.overflow = 'auto'; // 恢復網頁捲動
 
-                loginBtn.classList.add('hidden');
-                userProfile.classList.remove('hidden');
-
+                // 抓取 Google 帳號的名稱 (如果沒有就用信箱前綴)
                 const displayName = user.displayName || user.email.split('@')[0];
-                userNameDisplay.innerText = displayName;
-                userAvatarText.innerText = displayName.charAt(0).toUpperCase();
 
-                // 登入後：恢復顯示基本的常駐選項
-                if (navNotes) navNotes.style.display = 'flex';
-                if (navExamPaper) navExamPaper.style.display = 'flex';
-
-                try {
-                    const resultRef = doc(db, 'artifacts', appId, 'users', user.uid, 'exam_results', 'theory_test_1');
-                    const snap = await getDoc(resultRef);
-                    if (snap.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true') {
-                        // 已交卷：隱藏作答區，【顯示】解析、成績單與競標
-                        if (navExam) navExam.style.display = 'none';
-                        if (navTranscript) navTranscript.style.display = 'flex';
-                        if (navAuction) navAuction.style.display = 'flex';
-                        if (navSolution) navSolution.style.display = 'flex';
-                    } else {
-                        // 未交卷：顯示作答區，【隱藏】解析、成績單與競標
-                        if (navExam) navExam.style.display = 'flex';
-                        if (navTranscript) navTranscript.style.display = 'none';
-                        if (navAuction) navAuction.style.display = 'none';
-                        if (navSolution) navSolution.style.display = 'none';
-                    }
-                } catch (e) {
-                    console.error("無法檢查交卷狀態:", e);
-                }
+                // 觸發考卷解鎖機制
+                if (typeof unlockExam === 'function') unlockExam(user.uid, displayName);
 
             } else {
-                loginBtn.classList.remove('hidden');
-                userProfile.classList.add('hidden');
-
-                // 未登入時：【一律只顯示首頁】，隱藏其他所有選項
-                if (navNotes) navNotes.style.display = 'none';
-                if (navExamPaper) navExamPaper.style.display = 'none';
-                if (navExam) navExam.style.display = 'none';
-                if (navTranscript) navTranscript.style.display = 'none';
-                if (navAuction) navAuction.style.display = 'none';
-                if (navSolution) navSolution.style.display = 'none';
-
-                // 如果學生在其他頁面登出，強制跳轉回首頁儀表板
-                if (navHome && !navHome.classList.contains('active')) {
-                    navHome.click();
+                // ⚠️ 關鍵修正：不要用 document.body.innerHTML 摧毀畫面！
+                // 改成「蓋」一層全螢幕警告在最上面，這樣等 Firebase 讀取到帳號時才能還原
+                if (!authWarningDiv) {
+                    authWarningDiv = document.createElement('div');
+                    authWarningDiv.style.cssText = 'position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f8f9fa; font-family: sans-serif; color: #d93025; text-align: center;';
+                    authWarningDiv.innerHTML = `
+                    <div>
+                        <h1 style="font-size: 48px; margin-bottom: 10px;">🛡️</h1>
+                        <h2>拒絕存取</h2>
+                        <p>正在同步登入狀態...<br>若長時間卡住，請確認您已從主網站右上角登入系統。</p>
+                    </div>
+                `;
+                    document.body.appendChild(authWarningDiv);
+                    document.body.style.overflow = 'hidden'; // 禁止捲動背後的考卷
                 }
             }
         });
