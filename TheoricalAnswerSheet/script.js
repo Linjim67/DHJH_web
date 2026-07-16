@@ -166,9 +166,9 @@ function unlockExam(uid, displayName) {
 // 🚨 測驗時間與解鎖設定
 // ==========================================
 const EXAM_CONFIG = {
-    startTime: "14:58",     // 14:20
-    endTime: "15:09",       // 16:00
-    durationMinutes: 11,   // 100
+    startTime: "15:20",     // 14:20
+    endTime: "15:25",       // 16:00
+    durationMinutes: 5,   // 100
     enableTimeCheck: true   // true
 };
 
@@ -1236,56 +1236,49 @@ async function submitExam() {
         const qState = questionStates[qId];
         let earnedPoints = 0;
 
-        try {
-            if (qState.isCorrect) {
-                earnedPoints = qState.maxPoints;
-            }
-            else if (qId === 'q21') {
-                earnedPoints = 0;
-            }
-            else if (qState.maxPoints > 0) {
-                // 如果未曾手動檢查，啟動強制自動批改
-                // 1. 抓取該題學生「目前畫面上」的答案
-                if (qState.type === 'mcq') {
-                    payload.answers[qId] = getRadioValue(qId);
-                    if (qState.correctHash && window.encryptAnswer(qId, payload.answers[qId]) === qState.correctHash) {
-                        earnedPoints = qState.maxPoints;
-                    }
-                } else if (qState.type === 'fill-in') {
-                    payload.answers[qId] = document.getElementById(qId)?.value || "";
-                    if (qState.correctHash && window.encryptAnswer(qId, payload.answers[qId]) === qState.correctHash) {
-                        earnedPoints = qState.maxPoints;
-                    }
-                } else if (qState.type === 'mixed') {
-                    payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
-                    payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
-
-                    if (qState.correctHash &&
-                        window.encryptAnswer(qId + '_text', payload.answers[`${qId}_text`]) === qState.correctHash.text &&
-                        window.encryptAnswer(qId + '_radio', payload.answers[`${qId}_radio`]) === qState.correctHash.radio) {
-                        earnedPoints = qState.maxPoints;
-                    }
-                } else if (qState.type === 'multi-mcq') {
-                    payload.answers[qId] = [];
-                    // 防呆：萬一忘了設 correctHash，改抓 correctAnswer 長度避免當機
-                    const loopLen = qState.correctHash ? qState.correctHash.length : (qState.correctAnswer ? qState.correctAnswer.length : 0);
-
-                    for (let i = 0; i < loopLen; i++) {
-                        payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
-                    }
-
-                    if (qState.correctHash) {
-                        const hashedUserAnswers = payload.answers[qId].map((a, index) => window.encryptAnswer(`${qId}_${index + 1}`, a));
-                        if (JSON.stringify(hashedUserAnswers) === JSON.stringify(qState.correctHash)) {
-                            earnedPoints = qState.maxPoints;
-                        }
-                    }
+        if (qId === 'q21') {
+            // q21 化學方程式保留自訂檢查邏輯
+            earnedPoints = qState.isCorrect ? qState.maxPoints : 0;
+        } else {
+            // 1. 抓取該題學生「目前畫面上」的答案
+            if (qState.type === 'mcq') {
+                payload.answers[qId] = getRadioValue(qId);
+            } else if (qState.type === 'fill-in') {
+                payload.answers[qId] = document.getElementById(qId)?.value || "";
+            } else if (qState.type === 'mixed') {
+                payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
+                payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
+            } else if (qState.type === 'multi-mcq') {
+                payload.answers[qId] = [];
+                // 🚨 修正：將 correctAnswer 替換為 correctHash 來取得選項數量
+                const hashLength = qState.correctHash ? qState.correctHash.length : 0;
+                for (let i = 0; i < hashLength; i++) {
+                    payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
                 }
             }
-        } catch (err) {
-            console.error(`自動批改 ${qId} 時發生預期外錯誤:`, err);
+
+            // 2. 進行強制自動批改 (使用加密亂碼比對)
+            if (qState.type === 'mcq' || qState.type === 'fill-in') {
+                if (window.encryptAnswer(payload.answers[qId]) === qState.correctHash) {
+                    earnedPoints = qState.maxPoints;
+                }
+            } else if (qState.type === 'mixed') {
+                // 🚨 確保 mixed 題型的 correctHash 是 {text: "亂碼", radio: "亂碼"} 的物件格式
+                if (qState.correctHash &&
+                    window.encryptAnswer(payload.answers[`${qId}_text`]) === qState.correctHash.text &&
+                    window.encryptAnswer(payload.answers[`${qId}_radio`]) === qState.correctHash.radio) {
+                    earnedPoints = qState.maxPoints;
+                }
+            } else if (qState.type === 'multi-mcq') {
+                // 將學生的陣列答案全部加密後，與設定好的加密陣列比對
+                const hashedUserAnswers = payload.answers[qId].map(a => window.encryptAnswer(a));
+                if (JSON.stringify(hashedUserAnswers) === JSON.stringify(qState.correctHash)) {
+                    earnedPoints = qState.maxPoints;
+                }
+            }
         }
 
+        // 3. 寫入單題得分與累加總分
         payload.scores[qId] = earnedPoints;
 
         const cleanKey = qId.replace(/^q/i, '');

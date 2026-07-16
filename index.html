@@ -490,17 +490,17 @@
         // 接收子系統 (Iframe) 傳來的交卷完畢訊息
         window.addEventListener('message', (event) => {
             if (event.data && event.data.action === 'exam_submitted') {
-                // 1. 隱藏作答區，顯示成績單
+                // 1. 隱藏作答區
                 if (navExam) navExam.style.display = 'none';
+
+                // 2. 🚨 修正：同時把成績單、競標、詳解這三個按鈕全部顯示出來！
                 if (navTranscript) navTranscript.style.display = 'flex';
-                // 2. 自動點擊「成績單」按鈕進行無縫跳轉
+                if (navAuction) navAuction.style.display = 'flex';
+                if (navSolution) navSolution.style.display = 'flex';
+
+                // 3. 自動點擊「成績單」按鈕進行無縫跳轉
                 if (navTranscript) navTranscript.click();
             }
-        });
-
-        // 登出
-        logoutBtn.addEventListener('click', async () => {
-            await signOut(auth);
         });
 
     </script>
