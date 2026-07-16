@@ -489,7 +489,9 @@ function saveDraft() {
                 };
             } else if (qState.type === 'multi-mcq') {
                 draftData.answers[qId] = [];
-                for (let i = 0; i < qState.correctHash.length; i++) {
+                // 🛡️ 防護：確保不管有沒有 correctHash 都不當機
+                const hashLen = qState.correctHash ? qState.correctHash.length : (qState.substates || qState.subStates || []).length;
+                for (let i = 0; i < hashLen; i++) {
                     draftData.answers[qId].push(getRadioValue(`${qId}_${i + 1}`));
                 }
             }
@@ -565,9 +567,15 @@ function loadDraft() {
                             questionStates[qId].maxPoints = draftData.qStates[qId].maxPoints ?? 5;
                             questionStates[qId].isCorrect = draftData.qStates[qId].isCorrect || false;
 
-                            if (questionStates[qId].type === 'multi-mcq' && draftData.qStates[qId].subStates) {
-                                if (questionStates[qId].subStates.length === draftData.qStates[qId].subStates.length) {
-                                    questionStates[qId].subStates = draftData.qStates[qId].subStates;
+                            // 🐛 完美修復：同時相容大小寫，且絕對不報錯
+                            if (questionStates[qId].type === 'multi-mcq') {
+                                const draftSubs = draftData.qStates[qId].substates || draftData.qStates[qId].subStates;
+                                const localSubs = questionStates[qId].substates || questionStates[qId].subStates;
+
+                                if (draftSubs && localSubs && localSubs.length === draftSubs.length) {
+                                    // 為了防呆，把大寫和小寫都綁定同一份進度，以後怎麼讀都不會錯！
+                                    questionStates[qId].substates = draftSubs;
+                                    questionStates[qId].subStates = draftSubs;
                                 }
                             }
                         }
@@ -575,19 +583,20 @@ function loadDraft() {
 
                     Object.keys(questionStates).forEach(qId => {
                         if (qId === 'q21') return;
-                        updateQuestionUI(qId);
+                        if (typeof updateQuestionUI === 'function') updateQuestionUI(qId);
                     });
 
                     if (document.getElementById('q21_btn') && typeof updateChemUI === 'function') updateChemUI('q21');
                 }
-                updateGroupButtons();
+                if (typeof updateGroupButtons === 'function') updateGroupButtons();
             }
         } catch (e) {
-            console.error("載入暫存檔發生錯誤，已為您略過損壞的資料:", e);
-            localStorage.removeItem('exam_draft');
+            // 🛡️ 拿掉會亂刪除檔案的指令，只印出錯誤，保護學生的作答進度
+            console.error("載入暫存檔發生小錯誤，已為您保護草稿:", e);
         }
     }
 }
+
 
 function updateGroupButtons() {
     try {
@@ -627,7 +636,7 @@ function updateQuestionUI(qId) {
             else if (qState.type === 'mixed') qState.correctAnswer = {};
             else qState.correctAnswer = "";
         }
-        
+
         let inputs = [];
         if (qState.type === 'mcq') {
             inputs = Array.from(document.querySelectorAll(`input[name="${qId}"]`));
