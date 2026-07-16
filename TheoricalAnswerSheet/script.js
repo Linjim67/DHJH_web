@@ -786,7 +786,6 @@ function updateQuestionUI(qId) {
 }
 
 window.encryptAnswer = function (qId, answer) {
-
     if (answer === undefined || answer === null || answer === "") return "";
 
     // 1. 數值正規化
@@ -797,11 +796,9 @@ window.encryptAnswer = function (qId, answer) {
         normalized = normalized.toLowerCase();
     }
 
-    let cleanQid = String(qId).trim().replace(/^q/i, '');
+    const text = "dhjh_chem_" + String(qId).trim() + "_" + normalized;
 
-    //  FNV-1a 加密
-    const text = "dhjh_chem_" + cleanQid + "_" + normalized;
-
+    // 3. FNV-1a 加密
     let hash = 2166136261;
     for (let i = 0; i < text.length; i++) {
         hash ^= text.charCodeAt(i);
