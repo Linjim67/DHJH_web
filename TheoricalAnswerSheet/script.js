@@ -836,16 +836,17 @@ function requestCheck(qId) {
             hasAnswer = !!radioEl && hasText;
         } else if (qState.type === 'multi-mcq') {
             hasAnswer = true;
-            // 換成 correctHash.length 避免當機
+            // 🐛 完美修復：相容大小寫，避免當機
+            const subList = qState.subStates || qState.substates;
             for (let i = 0; i < qState.correctHash.length; i++) {
-                // subStates 改為 substates 配合題庫設定
-                if (!qState.substates[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
+                if (!subList[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
                     hasAnswer = false; break;
                 }
             }
         } else if (qState.type === 'chem') {
             hasAnswer = true;
         }
+
         if (!hasAnswer) {
             showAlert("系統提示", "請先完成作答內容（包含所有選項或空格）再進行檢驗。");
             return;
@@ -868,7 +869,6 @@ function requestCheck(qId) {
         console.error(`Check request failed for ${qId}:`, e);
     }
 }
-
 
 function requestGroupCheck(qIdsStr) {
     try {
@@ -904,9 +904,10 @@ function requestGroupCheck(qIdsStr) {
                 hasAnswer = !!radioEl && hasText;
             } else if (qState.type === 'multi-mcq') {
                 hasAnswer = true;
-                // 換成 correctHash.length 避免當機
+                // 🐛 完美修復：相容大小寫，避免當機
+                const subList = qState.subStates || qState.substates;
                 for (let i = 0; i < qState.correctHash.length; i++) {
-                    if (!qState.substates[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
+                    if (!subList[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
                         hasAnswer = false; break;
                     }
                 }
@@ -986,8 +987,10 @@ function executeGroupCheck(qIds) {
                     isCorrect = radioCorrect && textCorrect;
                 } else if (qState.type === 'multi-mcq') {
                     let allSubCorrect = true;
+                    // 🐛 完美修復：相容大小寫，避免當機
+                    const subList = qState.subStates || qState.substates;
                     for (let i = 0; i < qState.correctHash.length; i++) {
-                        const sub = qState.substates[i];
+                        const sub = subList[i];
                         if (sub.isCorrect) continue;
                         const el = document.querySelector(`input[name="${qId}_${i + 1}"]:checked`);
 
@@ -1025,79 +1028,6 @@ function executeGroupCheck(qIds) {
         showAlert("一鍵檢驗結果報告", results.join('\n'));
     } catch (e) {
         console.error("Group check execution failed:", e);
-    }
-}
-
-function executeCheck(qId) {
-    try {
-        const qState = questionStates[qId];
-        if (!qState) return;
-
-        let isCorrect = false;
-
-        // 【套用加密引擎比對】
-        if (qState.type === 'mcq') {
-            const el = document.querySelector(`input[name="${qId}"]:checked`);
-            isCorrect = el && window.encryptAnswer(qId, el.value) === qState.correctHash;
-        } else if (qState.type === 'fill-in') {
-            const el = document.getElementById(qId);
-            const userAnswer = el ? String(el.value || "").trim() : "";
-            isCorrect = window.encryptAnswer(qId, userAnswer) === qState.correctHash;
-        } else if (qState.type === 'mixed') {
-            const el = document.querySelector(`input[name="${qId}_radio"]:checked`);
-            const radioCorrect = el && window.encryptAnswer(`${qId}_radio`, el.value) === qState.correctHash.radio;
-
-            const textEl = document.getElementById(`${qId}_text`);
-            const textAns = textEl ? String(textEl.value || "").trim() : "";
-            const textCorrect = window.encryptAnswer(`${qId}_text`, textAns) === qState.correctHash.text;
-
-            isCorrect = radioCorrect && textCorrect;
-        } else if (qState.type === 'multi-mcq') {
-            let allSubCorrect = true;
-            for (let i = 0; i < qState.correctHash.length; i++) {
-                const sub = qState.substates[i];
-                if (sub.isCorrect) continue;
-                const el = document.querySelector(`input[name="${qId}_${i + 1}"]:checked`);
-
-                if (el && window.encryptAnswer(`${qId}_${i + 1}`, el.value) === qState.correctHash[i]) {
-                    sub.isCorrect = true;
-                } else {
-                    allSubCorrect = false;
-                    if (el && !sub.checkedHistory.includes(el.value)) {
-                        sub.checkedHistory.push(el.value);
-                    }
-                }
-            }
-            isCorrect = allSubCorrect;
-        }
-
-        qState.attempts++;
-
-        if (isCorrect) {
-            qState.isCorrect = true;
-            updateQuestionUI(qId);
-            showAlert("檢驗結果：正確", `驗證通過。本題獲得 ${qState.maxPoints} 分。`);
-        } else {
-            if (qState.type === 'mcq') {
-                const mcqScores = [5, 2, 1, 0];
-                qState.maxPoints = mcqScores[Math.min(qState.attempts, 3)];
-            } else if (qState.type === 'multi-mcq') {
-                qState.maxPoints = Math.max(0, qState.maxPoints - 1);
-            } else {
-                qState.maxPoints = Math.max(0, qState.maxPoints - 1);
-            }
-
-            updateQuestionUI(qId);
-
-            if (qState.maxPoints === 0) {
-                showAlert("檢驗結果：失敗", `本題分數已扣至 0 分。\n系統已鎖定欄位並公布正確答案。`);
-            } else {
-                showAlert("檢驗結果：錯誤", `答案不正確，請重新作答。\n本題當前最高可得 ${qState.maxPoints} 分。`);
-            }
-        }
-        saveDraft();
-    } catch (e) {
-        console.error(`Check execution failed for ${qId}:`, e);
     }
 }
 
