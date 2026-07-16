@@ -786,30 +786,34 @@ function updateQuestionUI(qId) {
 }
 
 window.encryptAnswer = function (qId, answer) {
-    if (answer === undefined || answer === null || answer === "") return "";
+    if (answer === undefined || answer === null || answer === "") return "00000000";
 
-    // 1. 數值正規化 (必須對齊 C++ ostringstream 的行為)
+    // 1. 數值正規化 (對應 C++ 的 stod 與 ostringstream)
     let normalized = String(answer).trim();
     if (normalized !== "" && !isNaN(Number(normalized))) {
         normalized = parseFloat(normalized).toString();
     } else {
-        // C++: transform(..., ::tolower)
+        // 對應 C++ 的 ::tolower
         normalized = normalized.toLowerCase();
     }
 
-    // 2. 🚨 關鍵修正：直接使用原始的 qId (不移除 'q')
-    // 確保這裡的 text 組合方式與 C++ 裡的 text 完全一致
-    const text = "dhjh_chem_" + qId + "_" + normalized;
+    // 2. 題號處理：自動移除開頭的 'q' 或是 'Q'
+    // 如果傳入 q3 -> 變成 3
+    // 如果傳入 q5_text -> 變成 5_text
+    // 如果傳入 q23-2 -> 變成 23-2
+    let cleanId = String(qId).trim().replace(/^q/i, '');
 
-    // 3. FNV-1a 加密 (模擬 C++ 邏輯)
+    // 3. 組合鹽巴 (對應 C++ 的 text)
+    const text = "dhjh_chem_" + cleanId + "_" + normalized;
+
+    // 4. FNV-1a (32-bit) 演算法
     let hash = 2166136261;
     for (let i = 0; i < text.length; i++) {
         hash ^= text.charCodeAt(i);
-        // Math.imul 用來精準模擬 32-bit 整數乘法
         hash = Math.imul(hash, 16777619);
     }
 
-    // 4. 轉為 8 位數十六進位 (與 C++ setw(8) 一致)
+    // 5. 轉為 8 位數十六進位 (對應 C++ 的 setfill('0') << setw(8))
     return (hash >>> 0).toString(16).padStart(8, '0');
 };
 
