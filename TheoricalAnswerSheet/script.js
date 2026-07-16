@@ -169,7 +169,7 @@ const EXAM_CONFIG = {
     startTime: "15:20",     // 14:20
     endTime: "15:25",       // 16:00
     durationMinutes: 5,   // 100
-    enableTimeCheck: true   // true
+    enableTimeCheck: false   // true 
 };
 
 // ==========================================
