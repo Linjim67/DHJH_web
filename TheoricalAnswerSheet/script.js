@@ -302,9 +302,6 @@ function startWaitingTimer(startDate) {
 // ==========================================
 // ⏱️ 測驗區：動態倒數與強制交卷機制
 // ==========================================
-// ==========================================
-// ⏱️ 測驗區：動態倒數與強制交卷機制
-// ==========================================
 function startExamTimer() {
     if (examTimerInterval) clearInterval(examTimerInterval);
 
@@ -315,7 +312,7 @@ function startExamTimer() {
     const [endH, endM] = EXAM_CONFIG.endTime.split(':').map(Number);
     hardDeadline.setHours(endH, endM, 0, 0);
 
-    // 條件二：從統一開考時間 (14:20) 起算 100 分鐘
+    // 條件二：從統一開考時間起算 100 分鐘
     const startDate = new Date();
     const [startH, startM] = EXAM_CONFIG.startTime.split(':').map(Number);
     startDate.setHours(startH, startM, 0, 0);
@@ -324,27 +321,28 @@ function startExamTimer() {
     // 取兩者中「最早」的時間作為最終強制交卷時間
     const finalDeadline = new Date(Math.min(hardDeadline.getTime(), durationDeadline.getTime()));
 
-    // 如果學生遲到太久，現在已經超過死線，立刻收卷
     if (now >= finalDeadline) {
         forceSubmitExam("考試時間已結束，系統將不予計算成績或自動交卷。");
         return;
     }
 
-    // --- 1. 建立 Header 深藍色計時器 ---
+    // --- 1. 建立 Header 深藍色框線計時器 ---
     let headerTimerDiv = document.getElementById('exam-timer-header');
     if (!headerTimerDiv) {
         headerTimerDiv = document.createElement('div');
         headerTimerDiv.id = 'exam-timer-header';
-        // 利用 absolute 定位，將其固定在 Header 右側
+        // 加入 border 與 padding 做出框線效果，字體微調使其更像電子鐘
         headerTimerDiv.style.cssText = `
             position: absolute; right: 30px; top: 50%; transform: translateY(-50%);
-            font-size: 1.5rem; font-weight: bold; color: #1e3a8a; /* Tailwind blue-900 (深藍色) */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex; align-items: center; gap: 8px;
+            font-size: 1.25rem; font-weight: bold; color: #1e3a8a; 
+            font-family: 'Courier New', Courier, monospace; letter-spacing: 2px;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid #1e3a8a; border-radius: 8px; padding: 6px 16px;
+            background-color: #f8fafc;
         `;
         const header = document.querySelector('.system-header');
         if (header) {
-            header.style.position = 'relative'; // 確保 absolute 定位正確
+            header.style.position = 'relative';
             header.appendChild(headerTimerDiv);
         }
     }
@@ -359,8 +357,8 @@ function startExamTimer() {
             background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; 
             padding: 12px 20px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2); 
             z-index: 9999; font-weight: bold; color: #ef4444; 
-            display: none; align-items: center; gap: 8px; 
-            font-family: 'Courier New', Courier, monospace; font-size: 24px;
+            display: none; align-items: center; justify-content: center;
+            font-family: 'Courier New', Courier, monospace; font-size: 24px; letter-spacing: 2px;
             animation: timerPulse 1s infinite;
         `;
         document.body.appendChild(floatTimerDiv);
@@ -370,7 +368,6 @@ function startExamTimer() {
         document.head.appendChild(style);
     }
 
-    // 紀錄是否已經警告過 10 分鐘 (存入 sessionStorage 防止重新整理後不斷跳出)
     let hasWarned10Min = sessionStorage.getItem('warned10Min') === 'true';
 
     // 每秒更新計時器
@@ -378,42 +375,37 @@ function startExamTimer() {
         const currentTime = new Date();
         const diffMs = finalDeadline.getTime() - currentTime.getTime();
 
-        // 時間到！強制交卷！
         if (diffMs <= 0) {
             clearInterval(examTimerInterval);
             floatTimerDiv.style.display = 'flex';
-            floatTimerDiv.innerHTML = '<span class="material-symbols-outlined">alarm_on</span> 考試結束';
+            floatTimerDiv.innerHTML = '考試結束'; // 時間到時顯示文字
             headerTimerDiv.style.display = 'none';
             forceSubmitExam("⏰ 考試時間已結束！系統正在為您強制自動交卷！");
             return;
         }
 
-        // 計算剩餘分秒
         const totalSeconds = Math.floor(diffMs / 1000);
         const m = Math.floor(totalSeconds / 60);
         const s = totalSeconds % 60;
 
-        // 格式化為 mm:ss (例如 90:05)
+        // 純淨的 mm:ss 格式
         const timeText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        const timeHtml = `<span class="material-symbols-outlined">timer</span> ${timeText}`;
 
-        // 剩餘 10 分鐘整的提示
         if (totalSeconds <= 600 && !hasWarned10Min) {
             hasWarned10Min = true;
-            sessionStorage.setItem('warned10Min', 'true'); // 記住已經警告過了
-            // 延遲 100 毫秒執行 alert，讓畫面能先更新到 10:00
+            sessionStorage.setItem('warned10Min', 'true');
             setTimeout(() => alert("⚠️ 提醒：距離考試結束僅剩最後 10 分鐘！"), 100);
         }
 
-        // 剩餘 3 分鐘時切換顯示位置與顏色 (<= 180 秒)
+        // 剩餘 3 分鐘時切換 (<= 180 秒)
         if (totalSeconds <= 180) {
             headerTimerDiv.style.display = 'none';
             floatTimerDiv.style.display = 'flex';
-            floatTimerDiv.innerHTML = timeHtml;
+            floatTimerDiv.innerHTML = timeText;
         } else {
             headerTimerDiv.style.display = 'flex';
             floatTimerDiv.style.display = 'none';
-            headerTimerDiv.innerHTML = timeHtml;
+            headerTimerDiv.innerHTML = timeText;
         }
 
     }, 1000);
