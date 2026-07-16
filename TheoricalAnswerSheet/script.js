@@ -57,12 +57,6 @@ const questionStates = {
 };
 
 
-const EXAM_CONFIG = {
-    startTime: "14:45", // 14:20
-    endTime: "14:52",   // 16:00
-    durationMinutes: 7, // 100
-    enableTimeCheck: true
-};
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -71,7 +65,7 @@ import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11
 console.log("🚀 腳本開始執行！嘗試綁定全域函數...");
 
 // ==========================================
-// 模組十：全域綁定保護機制 (移到最前面！)
+// 全域綁定
 // ==========================================
 window.requestCheck = requestCheck;
 window.requestGroupCheck = requestGroupCheck;
@@ -103,7 +97,7 @@ const firebaseConfig = {
     measurementId: "G-9CM3NBLLLS"
 };
 
-// 2. 初始化 Firebase (這三行就是解決 app is not defined 的關鍵)
+// 2. 初始化 Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -169,51 +163,80 @@ function unlockExam(uid, displayName) {
 }
 
 // ==========================================
-// 🚨 系統入口：監聽從母網站傳過來的登入狀態
+// 🚨 測驗時間與解鎖設定
 // ==========================================
+const EXAM_CONFIG = {
+    startTime: "14:58",     // 14:20
+    endTime: "15:09",       // 16:00
+    durationMinutes: 11,   // 100
+    enableTimeCheck: true   // true
+};
 
+// ==========================================
+// 🚨 系統入口：監聽登入狀態與等候室邏輯
+// ==========================================
 let authWarningDiv = null;
+let waitingTimerInterval = null;
 let examTimerInterval = null;
 
 onAuthStateChanged(auth, (user) => {
     if (user && !user.isAnonymous) {
-        // 1. 移除全螢幕警告
+        // 1. 移除「拒絕存取」的全螢幕警告
         if (authWarningDiv) {
             authWarningDiv.remove();
             authWarningDiv = null;
         }
         document.body.style.overflow = 'auto';
 
-        // 2. 記錄考生資料 (交卷時必備)
+        // 2. 記錄考生資料並顯示在測驗區 Header
         window.currentStudentId = user.uid;
         window.currentStudentName = user.displayName || user.email.split('@')[0];
 
-        // 3. 強制把考卷區塊顯示出來
-        const examSection = document.getElementById('exam_section');
-        if (examSection) {
-            examSection.style.display = 'block';
-            examSection.classList.remove('hidden');
+        const studentInfoDisplay = document.getElementById('student_info_display');
+        if (studentInfoDisplay) {
+            studentInfoDisplay.innerText = `考生：${window.currentStudentName}`;
         }
 
-        // 4. 開考時間檢查 (若 enableTimeCheck 為 true 才執行)
+        const waitingSection = document.getElementById('waiting_section');
+        const examSection = document.getElementById('exam_section');
+
+        // 3. 開考時間檢查邏輯
         if (EXAM_CONFIG.enableTimeCheck) {
             const now = new Date();
             const [startH, startM] = EXAM_CONFIG.startTime.split(':').map(Number);
             const startDate = new Date();
             startDate.setHours(startH, startM, 0, 0);
 
+            // 如果現在還沒到 14:20，進入等候室
             if (now < startDate) {
-                alert(`⏳ 測驗尚未開始！統一開考時間為 ${EXAM_CONFIG.startTime}，請稍後再重新整理網頁。`);
-                if (examSection) examSection.style.display = 'none'; // 再次隱藏考卷
-                return;
+                if (examSection) {
+                    examSection.classList.add('hidden');
+                    examSection.style.display = 'none';
+                }
+                if (waitingSection) {
+                    waitingSection.classList.remove('hidden');
+                    waitingSection.style.display = 'block';
+                }
+
+                // 啟動等候室的倒數計時器
+                startWaitingTimer(startDate);
+                return; // 中斷執行，還不啟動考卷的計時器
             }
         }
 
-        // 5. 啟動強制收卷計時器
-        startExamTimer();
+        // 4. 如果已經超過開考時間 (或沒開時間限制)，直接顯示考卷
+        if (waitingSection) {
+            waitingSection.classList.add('hidden');
+            waitingSection.style.display = 'none';
+        }
+        if (examSection) {
+            examSection.classList.remove('hidden');
+            examSection.style.display = 'block';
+        }
+        startExamTimer(); // 啟動右下角的交卷倒數
 
     } else {
-        // 尚未登入時，蓋上一層全螢幕的警告
+        // 尚未登入時的防護警告
         if (!authWarningDiv) {
             authWarningDiv = document.createElement('div');
             authWarningDiv.style.cssText = 'position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f8f9fa; font-family: sans-serif; color: #d93025; text-align: center;';
@@ -231,52 +254,124 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // ==========================================
-// ⏱️ 動態倒數計時與強制交卷機制
+// ⏳ 等候室：開考倒數計時器
+// ==========================================
+function startWaitingTimer(startDate) {
+    const countdownDisplay = document.getElementById('countdown_timer');
+    if (waitingTimerInterval) clearInterval(waitingTimerInterval);
+
+    // 立即執行一次，避免畫面卡在 --:-- 一秒鐘
+    updateWaitingDisplay();
+
+    waitingTimerInterval = setInterval(updateWaitingDisplay, 1000);
+
+    function updateWaitingDisplay() {
+        const now = new Date();
+        const diffMs = startDate.getTime() - now.getTime();
+
+        if (diffMs <= 0) {
+            // 開考時間到！
+            clearInterval(waitingTimerInterval);
+
+            // 隱藏等候室，顯示考卷
+            const waitingSection = document.getElementById('waiting_section');
+            const examSection = document.getElementById('exam_section');
+            if (waitingSection) {
+                waitingSection.classList.add('hidden');
+                waitingSection.style.display = 'none';
+            }
+            if (examSection) {
+                examSection.classList.remove('hidden');
+                examSection.style.display = 'block';
+            }
+
+            // 啟動交卷倒數計時
+            startExamTimer();
+            return;
+        }
+
+        // 更新畫面上的倒數分秒 (例如 05:30)
+        const m = Math.floor(diffMs / 60000);
+        const s = Math.floor((diffMs % 60000) / 1000);
+        if (countdownDisplay) {
+            countdownDisplay.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+    }
+}
+
+// ==========================================
+// ⏱️ 測驗區：動態倒數與強制交卷機制
+// ==========================================
+// ==========================================
+// ⏱️ 測驗區：動態倒數與強制交卷機制
 // ==========================================
 function startExamTimer() {
     if (examTimerInterval) clearInterval(examTimerInterval);
 
     const now = new Date();
 
-    // 條件一：今天的 16:00 絕對死線
+    // 條件一：硬性死線 16:00
     const hardDeadline = new Date();
     const [endH, endM] = EXAM_CONFIG.endTime.split(':').map(Number);
     hardDeadline.setHours(endH, endM, 0, 0);
 
-    // 條件二：從現在起算 100 分鐘
-    const durationDeadline = new Date(now.getTime() + EXAM_CONFIG.durationMinutes * 60000);
+    // 條件二：從統一開考時間 (14:20) 起算 100 分鐘
+    const startDate = new Date();
+    const [startH, startM] = EXAM_CONFIG.startTime.split(':').map(Number);
+    startDate.setHours(startH, startM, 0, 0);
+    const durationDeadline = new Date(startDate.getTime() + EXAM_CONFIG.durationMinutes * 60000);
 
     // 取兩者中「最早」的時間作為最終強制交卷時間
     const finalDeadline = new Date(Math.min(hardDeadline.getTime(), durationDeadline.getTime()));
 
-    // 如果學生遲到太久，現在已經超過 16:00，立刻收卷
+    // 如果學生遲到太久，現在已經超過死線，立刻收卷
     if (now >= finalDeadline) {
-        forceSubmitExam("考試時間已結束 (16:00)，系統將不予計算成績或自動交卷。");
+        forceSubmitExam("考試時間已結束，系統將不予計算成績或自動交卷。");
         return;
     }
 
-    // 動態在右下角建立精美的浮動計時器 UI
-    let timerDiv = document.getElementById('exam-timer-float');
-    if (!timerDiv) {
-        timerDiv = document.createElement('div');
-        timerDiv.id = 'exam-timer-float';
-        // 加入 CSS 動畫與樣式
-        timerDiv.style.cssText = `
+    // --- 1. 建立 Header 深藍色計時器 ---
+    let headerTimerDiv = document.getElementById('exam-timer-header');
+    if (!headerTimerDiv) {
+        headerTimerDiv = document.createElement('div');
+        headerTimerDiv.id = 'exam-timer-header';
+        // 利用 absolute 定位，將其固定在 Header 右側
+        headerTimerDiv.style.cssText = `
+            position: absolute; right: 30px; top: 50%; transform: translateY(-50%);
+            font-size: 1.5rem; font-weight: bold; color: #1e3a8a; /* Tailwind blue-900 (深藍色) */
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; align-items: center; gap: 8px;
+        `;
+        const header = document.querySelector('.system-header');
+        if (header) {
+            header.style.position = 'relative'; // 確保 absolute 定位正確
+            header.appendChild(headerTimerDiv);
+        }
+    }
+
+    // --- 2. 建立右下角紅色浮動計時器 (預設隱藏) ---
+    let floatTimerDiv = document.getElementById('exam-timer-float');
+    if (!floatTimerDiv) {
+        floatTimerDiv = document.createElement('div');
+        floatTimerDiv.id = 'exam-timer-float';
+        floatTimerDiv.style.cssText = `
             position: fixed; bottom: 30px; right: 30px; 
-            background: #ffffff; border: 2px solid #ef4444; border-radius: 12px; 
+            background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; 
             padding: 12px 20px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2); 
             z-index: 9999; font-weight: bold; color: #ef4444; 
-            display: flex; align-items: center; gap: 8px; 
-            font-family: 'Courier New', Courier, monospace; font-size: 20px;
-            transition: all 0.3s ease;
+            display: none; align-items: center; gap: 8px; 
+            font-family: 'Courier New', Courier, monospace; font-size: 24px;
+            animation: timerPulse 1s infinite;
         `;
-        document.body.appendChild(timerDiv);
+        document.body.appendChild(floatTimerDiv);
 
-        // 植入閃爍動畫的 style
         const style = document.createElement('style');
         style.innerHTML = `@keyframes timerPulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }`;
         document.head.appendChild(style);
     }
+
+    // 紀錄是否已經警告過 10 分鐘 (存入 sessionStorage 防止重新整理後不斷跳出)
+    let hasWarned10Min = sessionStorage.getItem('warned10Min') === 'true';
 
     // 每秒更新計時器
     examTimerInterval = setInterval(() => {
@@ -286,23 +381,41 @@ function startExamTimer() {
         // 時間到！強制交卷！
         if (diffMs <= 0) {
             clearInterval(examTimerInterval);
-            timerDiv.innerHTML = '<span class="material-symbols-outlined">alarm_on</span> 考試結束，自動交卷中...';
-            timerDiv.style.backgroundColor = '#ef4444';
-            timerDiv.style.color = '#ffffff';
+            floatTimerDiv.style.display = 'flex';
+            floatTimerDiv.innerHTML = '<span class="material-symbols-outlined">alarm_on</span> 考試結束';
+            headerTimerDiv.style.display = 'none';
             forceSubmitExam("⏰ 考試時間已結束！系統正在為您強制自動交卷！");
             return;
         }
 
         // 計算剩餘分秒
-        const m = Math.floor(diffMs / 60000);
-        const s = Math.floor((diffMs % 60000) / 1000);
-        timerDiv.innerHTML = `<span class="material-symbols-outlined">timer</span> 剩餘時間：${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
 
-        // 最後 5 分鐘變色 + 閃爍警告
-        if (m < 5) {
-            timerDiv.style.backgroundColor = '#fef2f2';
-            timerDiv.style.animation = 'timerPulse 1s infinite';
+        // 格式化為 mm:ss (例如 90:05)
+        const timeText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        const timeHtml = `<span class="material-symbols-outlined">timer</span> ${timeText}`;
+
+        // 剩餘 10 分鐘整的提示
+        if (totalSeconds <= 600 && !hasWarned10Min) {
+            hasWarned10Min = true;
+            sessionStorage.setItem('warned10Min', 'true'); // 記住已經警告過了
+            // 延遲 100 毫秒執行 alert，讓畫面能先更新到 10:00
+            setTimeout(() => alert("⚠️ 提醒：距離考試結束僅剩最後 10 分鐘！"), 100);
         }
+
+        // 剩餘 3 分鐘時切換顯示位置與顏色 (<= 180 秒)
+        if (totalSeconds <= 180) {
+            headerTimerDiv.style.display = 'none';
+            floatTimerDiv.style.display = 'flex';
+            floatTimerDiv.innerHTML = timeHtml;
+        } else {
+            headerTimerDiv.style.display = 'flex';
+            floatTimerDiv.style.display = 'none';
+            headerTimerDiv.innerHTML = timeHtml;
+        }
+
     }, 1000);
 }
 
