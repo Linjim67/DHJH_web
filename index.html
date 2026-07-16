@@ -351,69 +351,6 @@
         loginBtn.addEventListener('click', openModal);
         closeModalBtn.addEventListener('click', closeModal);
 
-         // 執行 Google 登入
-        googleLoginBtn.addEventListener('click', async () => {
-            authError.classList.add('hidden');
-            googleLoginBtn.innerText = '登入處理中...';
-            googleLoginBtn.disabled = true;
-
-            try {
-                const result = await signInWithPopup(auth, googleProvider);
-                const user = result.user;
-
-                // --- 關鍵防護：在寫入資料庫與關閉視窗前，立刻檢查信箱權限 ---
-                const email = user.email || "";
-                const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
-                    email.endsWith('@g.ntu.edu.tw') ||
-                    email === 'linjim267@gmail.com';
-
-                if (!isAuthorized) {
-                    // 1. 如果不合格，立刻強制登出
-                    await signOut(auth);
-                    // 2. 拋出自訂錯誤，中斷下方寫入資料庫與 closeModal() 的動作
-                    throw new Error('unauthorized_domain');
-                }
-
-                // 通過檢查，才將資料寫入 Firestore
-                const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
-                await setDoc(userRef, {
-                    name: user.displayName,
-                    email: user.email,
-                    lastLogin: new Date().toISOString()
-                }, { merge: true });
-
-                closeModal();
-            } catch (error) {
-                console.error("Google 登入錯誤:", error);
-
-                // 根據錯誤類型顯示對應的紅色警告框
-                if (error.message === 'unauthorized_domain') {
-                    showError('請使用學校信箱(.thjh)登入！');
-                } else if (error.code !== 'auth/popup-closed-by-user') {
-                    showError('登入失敗，請檢查網路或稍後再試。');
-                }
-            } finally {
-                // 還原 Google 彩色圖示與按鈕狀態
-                googleLoginBtn.innerHTML = `
-                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-                使用 Google 帳號登入
-            `;
-                googleLoginBtn.disabled = false;
-            }
-        });
-
-        // ==========================================
-        // ==========================================
-        const userProfile = document.getElementById('user-profile');
-        const userNameDisplay = document.getElementById('user-name');
-        const userAvatarText = document.getElementById('user-avatar-text');
-        const logoutBtn = document.getElementById('logout-btn');
-
         // 取得所有側邊欄按鈕
         const navHome = document.querySelector('[data-page="home"]');
         const navNotes = document.querySelector('[data-page="notes"]');
@@ -423,40 +360,127 @@
         const navAuction = document.querySelector('[data-page="auction"]');
         const navSolution = document.querySelector('[data-page="exam-solution"]');
 
-        let authWarningDiv = null;
+        // 將需要權限的按鈕打包，方便統一隱藏
+        const restrictedNavs = [navNotes, navExamPaper, navExam, navTranscript, navAuction, navSolution];
 
-        onAuthStateChanged(auth, (user) => {
-            // 確認有使用者，且不是匿名登入
-            if (user && !user.isAnonymous) {
+        // ==========================================
+        // 1. 執行 Google 登入 (改回彈出視窗 Popup)
+        // ==========================================
+        // 注意：這裡移除了 getRedirectResult，所有的驗證都在 Popup 完成
+        googleLoginBtn.addEventListener('click', async () => {
+            authError.classList.add('hidden');
+            googleLoginBtn.innerHTML = '正在驗證 Google 帳號...';
+            googleLoginBtn.disabled = true;
 
-                // 如果有警告視窗，立刻移除，還原背後的考卷畫面
-                if (authWarningDiv) {
-                    authWarningDiv.remove();
-                    authWarningDiv = null;
+            try {
+                // 使用 signInWithPopup，這能避免 Google 頻繁要求輸入認證碼
+                const result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+
+                // --- 🛡️ 關鍵防護：檢查信箱權限 ---
+                const email = user.email || "";
+                const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
+                    email.endsWith('@g.ntu.edu.tw') ||
+                    email === 'linjim267@gmail.com';
+
+                if (!isAuthorized) {
+                    await signOut(auth); // 發現違規，立刻強制登出
+
+                    // 顯示錯誤訊息，並保留登入視窗讓學生重新選擇
+                    showError('不得登入：\n請使用 @thjh.tp.edu.tw 或 @g.ntu.edu.tw 網域的帳戶！');
+                    googleLoginBtn.innerHTML = '使用 Google 帳號登入';
+                    googleLoginBtn.disabled = false;
+                    return; // 直接中斷，絕對不寫入資料庫
                 }
-                document.body.style.overflow = 'auto'; // 恢復網頁捲動
+                // -------------------------------------------------------------
 
-                // 抓取 Google 帳號的名稱 (如果沒有就用信箱前綴)
+                // 通過檢查，寫入 Firestore
+                const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
+                await setDoc(userRef, {
+                    name: user.displayName,
+                    email: user.email,
+                    lastLogin: new Date().toISOString()
+                }, { merge: true });
+
+                closeModal();
+                googleLoginBtn.innerHTML = '使用 Google 帳號登入';
+                googleLoginBtn.disabled = false;
+
+            } catch (error) {
+                console.error("Google 登入錯誤:", error);
+                // 如果是學生自己關掉視窗，就不顯示紅色錯誤
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    showError('登入失敗，請檢查網路或稍後再試。');
+                }
+                googleLoginBtn.innerHTML = '使用 Google 帳號登入';
+                googleLoginBtn.disabled = false;
+            }
+        });
+
+        // ==========================================
+        // 2. 監聽登入狀態並更新側邊欄
+        // ==========================================
+        const userProfile = document.getElementById('user-profile');
+        const userNameDisplay = document.getElementById('user-name');
+        const userAvatarText = document.getElementById('user-avatar-text');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user && !user.isAnonymous) {
+                // 白名單二次驗證 (防止以前殘留的非法帳號登入紀錄)
+                const email = user.email || "";
+                const isAuthorized = email.endsWith('@thjh.tp.edu.tw') ||
+                    email.endsWith('@g.ntu.edu.tw') ||
+                    email === 'linjim267@gmail.com';
+
+                if (!isAuthorized) {
+                    await signOut(auth);
+                    return;
+                }
+
+                loginBtn.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+
                 const displayName = user.displayName || user.email.split('@')[0];
+                userNameDisplay.innerText = displayName;
+                userAvatarText.innerText = displayName.charAt(0).toUpperCase();
 
-                // 觸發考卷解鎖機制
-                if (typeof unlockExam === 'function') unlockExam(user.uid, displayName);
+                // 登入後：恢復顯示基本的常駐選項
+                if (navNotes) navNotes.style.display = 'flex';
+                if (navExamPaper) navExamPaper.style.display = 'flex';
+
+                try {
+                    const resultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
+                    const snap = await getDoc(resultRef);
+                    if (snap.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true') {
+                        // 已交卷：隱藏作答區，【顯示】解析、成績單與競標
+                        if (navExam) navExam.style.display = 'none';
+                        if (navTranscript) navTranscript.style.display = 'flex';
+                        if (navAuction) navAuction.style.display = 'flex';
+                        if (navSolution) navSolution.style.display = 'flex';
+                    } else {
+                        // 未交卷：顯示作答區，【隱藏】解析、成績單與競標
+                        if (navExam) navExam.style.display = 'flex';
+                        if (navTranscript) navTranscript.style.display = 'none';
+                        if (navAuction) navAuction.style.display = 'none';
+                        if (navSolution) navSolution.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error("無法檢查交卷狀態:", e);
+                }
 
             } else {
-                // ⚠️ 關鍵修正：不要用 document.body.innerHTML 摧毀畫面！
-                // 改成「蓋」一層全螢幕警告在最上面，這樣等 Firebase 讀取到帳號時才能還原
-                if (!authWarningDiv) {
-                    authWarningDiv = document.createElement('div');
-                    authWarningDiv.style.cssText = 'position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f8f9fa; font-family: sans-serif; color: #d93025; text-align: center;';
-                    authWarningDiv.innerHTML = `
-                    <div>
-                        <h1 style="font-size: 48px; margin-bottom: 10px;">🛡️</h1>
-                        <h2>拒絕存取</h2>
-                        <p>正在同步登入狀態...<br>若長時間卡住，請確認您已從主網站右上角登入系統。</p>
-                    </div>
-                `;
-                    document.body.appendChild(authWarningDiv);
-                    document.body.style.overflow = 'hidden'; // 禁止捲動背後的考卷
+                loginBtn.classList.remove('hidden');
+                userProfile.classList.add('hidden');
+
+                // 未登入時：【隱藏所有權限按鈕】，只留首頁
+                restrictedNavs.forEach(nav => {
+                    if (nav) nav.style.display = 'none';
+                });
+
+                // 如果學生在其他頁面登出，強制跳轉回首頁儀表板
+                if (navHome && !navHome.classList.contains('active')) {
+                    navHome.click();
                 }
             }
         });
