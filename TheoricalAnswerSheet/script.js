@@ -36,8 +36,8 @@ const questionStates = {
     q22: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "811f31cd" },
     q231: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "8a0b4bce" },
     q232: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "7147821a" },
-    q24: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: { radio: "79998d4c", text: "b709b7f3" } },
-    q25: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: { radio: "f8842bd6", text: "7e93fd0f" } },
+    q24: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: { radio: "9511985c", text: "b709b7f3" } },
+    q25: { type: 'mixed', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: { radio: "5776ea66", text: "7e93fd0f" } },
     q26: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "2641ad82" },
     q27: { type: 'mcq', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "82a668b7" },
     q28: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "3a13a120" },
@@ -786,7 +786,7 @@ function updateQuestionUI(qId) {
 }
 
 window.encryptAnswer = function (qId, answer) {
-    /* STREAMING_CHUNK:加入自動移除 q 前綴的防呆機制 */
+
     if (answer === undefined || answer === null || answer === "") return "";
 
     // 1. 數值正規化
@@ -1236,56 +1236,37 @@ async function submitExam() {
         const qState = questionStates[qId];
         let earnedPoints = 0;
 
-        if (qId === 'q21') {
-            // q21 化學方程式保留自訂檢查邏輯
-            earnedPoints = qState.isCorrect ? qState.maxPoints : 0;
+        // 1. 如果學生已經按過「檢查答案」且為正確，直接給分，跳過重新計算
+        if (qState.isCorrect === true) {
+            earnedPoints = qState.maxPoints;
         } else {
-            // 1. 抓取該題學生「目前畫面上」的答案
+            // 2. 如果之前沒按過，或是按了之後是錯的，執行自動批改 (防守機制)
             if (qState.type === 'mcq') {
-                payload.answers[qId] = getRadioValue(qId);
+                const answer = getRadioValue(qId);
+                if (window.encryptAnswer(answer) === qState.correctHash) earnedPoints = qState.maxPoints;
             } else if (qState.type === 'fill-in') {
-                payload.answers[qId] = document.getElementById(qId)?.value || "";
+                const answer = document.getElementById(qId)?.value || "";
+                if (window.encryptAnswer(answer) === qState.correctHash) earnedPoints = qState.maxPoints;
             } else if (qState.type === 'mixed') {
-                payload.answers[`${qId}_text`] = document.getElementById(`${qId}_text`)?.value || "";
-                payload.answers[`${qId}_radio`] = getRadioValue(`${qId}_radio`);
+                const txt = document.getElementById(`${qId}_text`)?.value || "";
+                const rad = getRadioValue(`${qId}_radio`);
+                if (window.encryptAnswer(txt) === qState.correctHash.text &&
+                    window.encryptAnswer(rad) === qState.correctHash.radio) earnedPoints = qState.maxPoints;
             } else if (qState.type === 'multi-mcq') {
-                payload.answers[qId] = [];
-                // 🚨 修正：將 correctAnswer 替換為 correctHash 來取得選項數量
                 const hashLength = qState.correctHash ? qState.correctHash.length : 0;
+                const userAnswers = [];
                 for (let i = 0; i < hashLength; i++) {
-                    payload.answers[qId].push(getRadioValue(`${qId}_${i + 1}`) || "");
+                    userAnswers.push(window.encryptAnswer(getRadioValue(`${qId}_${i + 1}`) || ""));
                 }
-            }
-
-            // 2. 進行強制自動批改 (使用加密亂碼比對)
-            if (qState.type === 'mcq' || qState.type === 'fill-in') {
-                if (window.encryptAnswer(payload.answers[qId]) === qState.correctHash) {
-                    earnedPoints = qState.maxPoints;
-                }
-            } else if (qState.type === 'mixed') {
-                // 🚨 確保 mixed 題型的 correctHash 是 {text: "亂碼", radio: "亂碼"} 的物件格式
-                if (qState.correctHash &&
-                    window.encryptAnswer(payload.answers[`${qId}_text`]) === qState.correctHash.text &&
-                    window.encryptAnswer(payload.answers[`${qId}_radio`]) === qState.correctHash.radio) {
-                    earnedPoints = qState.maxPoints;
-                }
-            } else if (qState.type === 'multi-mcq') {
-                // 將學生的陣列答案全部加密後，與設定好的加密陣列比對
-                const hashedUserAnswers = payload.answers[qId].map(a => window.encryptAnswer(a));
-                if (JSON.stringify(hashedUserAnswers) === JSON.stringify(qState.correctHash)) {
-                    earnedPoints = qState.maxPoints;
-                }
+                if (JSON.stringify(userAnswers) === JSON.stringify(qState.correctHash)) earnedPoints = qState.maxPoints;
+            } else if (qId === 'q21') {
+                // 特殊處理化學方程式 (若有自動檢查函數)
+                if (typeof window.checkChemEquation === 'function' && window.checkChemEquation()) earnedPoints = qState.maxPoints;
             }
         }
 
-        // 3. 寫入單題得分與累加總分
+        // 3. 結算
         payload.scores[qId] = earnedPoints;
-
-        const cleanKey = qId.replace(/^q/i, '');
-        if (cleanKey !== qId) {
-            payload.scores[cleanKey] = earnedPoints;
-        }
-
         totalScore += earnedPoints;
     });
 
