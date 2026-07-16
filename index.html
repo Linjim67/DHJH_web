@@ -179,9 +179,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // 匯入 GoogleAuthProvider 與 signInWithPopup
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAZ7cCQlXh8oiNzwnT2LL07KPt5TMaI2d8",
@@ -426,6 +425,9 @@
         const logoutBtn = document.getElementById('logout-btn');
 
         onAuthStateChanged(auth, async (user) => {
+
+            currentUser = user;
+            
             if (user && !user.isAnonymous) {
                 // 白名單二次驗證 (防止以前殘留的非法帳號登入紀錄)
                 const email = user.email || "";
