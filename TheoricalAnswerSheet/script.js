@@ -172,25 +172,22 @@ function unlockExam(uid, displayName) {
 // 🚨 系統入口：監聽從母網站傳過來的登入狀態
 // ==========================================
 onAuthStateChanged(auth, (user) => {
-    // 確認有使用者，且不是匿名登入
     if (user && !user.isAnonymous) {
-        // 抓取 Google 帳號的名稱 (如果沒有就用信箱前綴)
-        const displayName = user.displayName || user.email.split('@')[0];
+        // 抓到主網站傳來的帳號了！
+        // 1. 隱藏舊的登入區塊
+        const loginSection = document.getElementById('login_section');
+        if (loginSection) loginSection.style.display = 'none';
 
-        // 觸發考卷解鎖機制
-        unlockExam(user.uid, displayName);
+        // 2. 顯示考卷區塊
+        const examSection = document.getElementById('exam_section');
+        if (examSection) examSection.style.display = 'block';
 
+        // 3. 記錄考生資料
+        window.currentStudentId = user.uid;
+        window.currentStudentName = user.displayName || user.email;
     } else {
-        // 如果學生想偷跑，直接打開子網站的網址，就會被這段擋住！
-        document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f9fa; font-family: sans-serif; color: #d93025; text-align: center;">
-                <div>
-                    <h1 style="font-size: 48px; margin-bottom: 10px;">🛡️</h1>
-                    <h2>拒絕存取</h2>
-                    <p>請先從主網站右上角登入系統，再進入此作答區。</p>
-                </div>
-            </div>
-        `;
+        // 還沒抓到帳號，顯示載入中
+        document.body.innerHTML = "<h2>正在同步登入狀態...</h2>";
     }
 });
 
