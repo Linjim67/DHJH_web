@@ -622,6 +622,12 @@ function updateQuestionUI(qId) {
 
         if (!qState || !btn) return;
 
+        if (qState.correctAnswer === undefined) {
+            if (qState.type === 'multi-mcq') qState.correctAnswer = [];
+            else if (qState.type === 'mixed') qState.correctAnswer = {};
+            else qState.correctAnswer = "";
+        }
+        
         let inputs = [];
         if (qState.type === 'mcq') {
             inputs = Array.from(document.querySelectorAll(`input[name="${qId}"]`));
