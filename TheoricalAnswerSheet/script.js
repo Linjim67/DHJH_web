@@ -1235,37 +1235,34 @@ async function submitExam() {
     Object.keys(questionStates).forEach(qId => {
         const qState = questionStates[qId];
         let earnedPoints = 0;
+        let studentAnswer = "無法讀取";
+        let isCorrect = false;
 
-        // 1. 如果學生已經按過「檢查答案」且為正確，直接給分，跳過重新計算
-        if (qState.isCorrect === true) {
-            earnedPoints = qState.maxPoints;
-        } else {
-            // 2. 如果之前沒按過，或是按了之後是錯的，執行自動批改 (防守機制)
-            if (qState.type === 'mcq') {
-                const answer = getRadioValue(qId);
-                if (window.encryptAnswer(answer) === qState.correctHash) earnedPoints = qState.maxPoints;
-            } else if (qState.type === 'fill-in') {
-                const answer = document.getElementById(qId)?.value || "";
-                if (window.encryptAnswer(answer) === qState.correctHash) earnedPoints = qState.maxPoints;
-            } else if (qState.type === 'mixed') {
-                const txt = document.getElementById(`${qId}_text`)?.value || "";
-                const rad = getRadioValue(`${qId}_radio`);
-                if (window.encryptAnswer(txt) === qState.correctHash.text &&
-                    window.encryptAnswer(rad) === qState.correctHash.radio) earnedPoints = qState.maxPoints;
-            } else if (qState.type === 'multi-mcq') {
-                const hashLength = qState.correctHash ? qState.correctHash.length : 0;
-                const userAnswers = [];
-                for (let i = 0; i < hashLength; i++) {
-                    userAnswers.push(window.encryptAnswer(getRadioValue(`${qId}_${i + 1}`) || ""));
-                }
-                if (JSON.stringify(userAnswers) === JSON.stringify(qState.correctHash)) earnedPoints = qState.maxPoints;
-            } else if (qId === 'q21') {
-                // 特殊處理化學方程式 (若有自動檢查函數)
-                if (typeof window.checkChemEquation === 'function' && window.checkChemEquation()) earnedPoints = qState.maxPoints;
-            }
+        // 1. 抓取學生答案 (增加偵測)
+        if (qState.type === 'mcq') {
+            studentAnswer = getRadioValue(qId);
+        } else if (qState.type === 'fill-in') {
+            studentAnswer = document.getElementById(qId)?.value || "Empty";
+        } else if (qState.type === 'mixed') {
+            const txt = document.getElementById(`${qId}_text`)?.value || "";
+            const rad = getRadioValue(`${qId}_radio`);
+            studentAnswer = `Text:${txt}, Radio:${rad}`;
+
+            if (window.encryptAnswer(txt) === qState.correctHash.text &&
+                window.encryptAnswer(rad) === qState.correctHash.radio) isCorrect = true;
         }
 
-        // 3. 結算
+        // 2. 批改並印出結果
+        if (qState.type === 'mcq' || qState.type === 'fill-in') {
+            const studentHash = window.encryptAnswer(studentAnswer);
+            if (studentHash === qState.correctHash) isCorrect = true;
+
+            // 偵探日誌：看看系統讀到的答案和亂碼是不是我們想的那樣
+            console.log(`[批改偵探] 題號: ${qId} | 學生讀取答案: "${studentAnswer}" | 學生亂碼: ${studentHash} | 正確亂碼: ${qState.correctHash} | 結果: ${isCorrect ? "✅ 正確" : "❌ 錯誤"}`);
+        }
+
+        // 結算
+        earnedPoints = isCorrect ? qState.maxPoints : 0;
         payload.scores[qId] = earnedPoints;
         totalScore += earnedPoints;
     });
