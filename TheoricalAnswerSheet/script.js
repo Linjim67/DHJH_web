@@ -166,8 +166,8 @@ function unlockExam(uid, displayName) {
 // 🚨 測驗時間與解鎖設定
 // ==========================================
 const EXAM_CONFIG = {
-    startTime: "15:20",     // 14:20
-    endTime: "19:00",       // 16:00
+    startTime: "22:30",     // 14:20
+    endTime: "23:59",       // 16:00
     durationMinutes: 400,   // 100
     enableTimeCheck: true   // true 
 };
