@@ -448,7 +448,11 @@ function checkAnswerEquivalence(userAns, correctAns) {
 }
 
 function saveDraft() {
-    if (!currentStudentId) return;
+    console.log("💾 [存檔啟動] 目前的學生 UID:", window.currentStudentId);
+    if (!window.currentStudentId) {
+        console.warn("⚠️ [存檔失敗] 找不到 currentStudentId，放棄存檔！");
+        return;
+    }
     try {
         const getRadioValue = (name) => {
             const el = document.querySelector(`input[name="${name}"]:checked`);
@@ -466,8 +470,8 @@ function saveDraft() {
         };
 
         const draftData = {
-            student_id: currentStudentId,
-            skipConfirm: skipConfirm,
+            student_id: window.currentStudentId,
+            skipConfirm: typeof skipConfirm !== 'undefined' ? skipConfirm : false,
             answers: {},
             q21: {
                 pool: getChemZoneData('chem_pool'),
@@ -491,7 +495,6 @@ function saveDraft() {
                 };
             } else if (qState.type === 'multi-mcq') {
                 draftData.answers[qId] = [];
-                // 🛡️ 防護：確保不管有沒有 correctHash 都不當機
                 const hashLen = qState.correctHash ? qState.correctHash.length : (qState.substates || qState.subStates || []).length;
                 for (let i = 0; i < hashLen; i++) {
                     draftData.answers[qId].push(getRadioValue(`${qId}_${i + 1}`));
@@ -500,102 +503,94 @@ function saveDraft() {
         });
 
         localStorage.setItem('exam_draft', JSON.stringify(draftData));
+        console.log("✅ [存檔成功] 寫入的資料內容:", draftData);
     } catch (e) {
-        console.error("Save Draft Failed:", e);
+        console.error("❌ [存檔發生例外錯誤]:", e);
     }
 }
 
 function loadDraft() {
+    console.log("📂 [讀檔啟動] 目前的學生 UID:", window.currentStudentId);
     const saved = localStorage.getItem('exam_draft');
-    if (saved) {
-        try {
-            const draftData = JSON.parse(saved);
-            if (draftData.student_id === currentStudentId) {
 
-                if (draftData.skipConfirm !== undefined) {
-                    skipConfirm = draftData.skipConfirm;
-                }
+    if (!saved) {
+        console.warn("⚠️ [讀檔中斷] localStorage 裡面沒有 exam_draft (空白的)！");
+        return;
+    }
 
-                if (draftData.answers) {
-                    Object.keys(draftData.answers).forEach(qId => {
-                        const ans = draftData.answers[qId];
-                        const qState = questionStates[qId];
-                        if (!qState) return;
+    console.log("📂 [讀檔進度] 成功從 localStorage 抓出文字，準備解析...");
 
-                        if (qState.type === 'mcq' && ans) {
-                            const radio = document.querySelector(`input[name="${qId}"][value="${ans}"]`);
+    try {
+        const draftData = JSON.parse(saved);
+        console.log("📂 [讀檔進度] 解析 JSON 成功！草稿主人的 UID:", draftData.student_id);
+
+        if (draftData.student_id === window.currentStudentId) {
+            console.log("✅ [讀檔進度] 身分核對相符！開始把答案畫到畫面上...");
+
+            if (draftData.skipConfirm !== undefined && typeof skipConfirm !== 'undefined') {
+                skipConfirm = draftData.skipConfirm;
+            }
+
+            if (draftData.answers) {
+                Object.keys(draftData.answers).forEach(qId => {
+                    const ans = draftData.answers[qId];
+                    const qState = questionStates[qId];
+                    if (!qState) return;
+
+                    if (qState.type === 'mcq' && ans) {
+                        const radio = document.querySelector(`input[name="${qId}"][value="${ans}"]`);
+                        if (radio) radio.checked = true;
+                    } else if (qState.type === 'fill-in' && ans) {
+                        const el = document.getElementById(qId);
+                        if (el) el.value = ans;
+                    } else if (qState.type === 'mixed' && ans) {
+                        const textEl = document.getElementById(`${qId}_text`);
+                        if (textEl && ans.text) textEl.value = ans.text;
+                        if (ans.radio) {
+                            const radio = document.querySelector(`input[name="${qId}_radio"][value="${ans.radio}"]`);
                             if (radio) radio.checked = true;
-                        } else if (qState.type === 'fill-in' && ans) {
-                            const el = document.getElementById(qId);
-                            if (el) el.value = ans;
-                        } else if (qState.type === 'mixed' && ans) {
-                            const textEl = document.getElementById(`${qId}_text`);
-                            if (textEl && ans.text) textEl.value = ans.text;
-                            if (ans.radio) {
-                                const radio = document.querySelector(`input[name="${qId}_radio"][value="${ans.radio}"]`);
+                        }
+                    } else if (qState.type === 'multi-mcq' && Array.isArray(ans)) {
+                        ans.forEach((subAns, idx) => {
+                            if (subAns) {
+                                const radio = document.querySelector(`input[name="${qId}_${idx + 1}"][value="${subAns}"]`);
                                 if (radio) radio.checked = true;
                             }
-                        } else if (qState.type === 'multi-mcq' && Array.isArray(ans)) {
-                            ans.forEach((subAns, idx) => {
-                                if (subAns) {
-                                    const radio = document.querySelector(`input[name="${qId}_${idx + 1}"][value="${subAns}"]`);
-                                    if (radio) radio.checked = true;
-                                }
-                            });
-                        }
-                    });
-                }
+                        });
+                    }
+                });
+            }
 
-                if (draftData.q21 && document.getElementById('chem_pool')) {
-                    document.getElementById('chem_pool').innerHTML = '<div class="chem-pool-placeholder">素材區 (產生的化學式將暫存於此)</div>';
-                    document.getElementById('reactants_zone').innerHTML = '';
-                    document.getElementById('products_zone').innerHTML = '';
+            if (draftData.qStates) {
+                Object.keys(draftData.qStates).forEach(qId => {
+                    if (questionStates[qId]) {
+                        questionStates[qId].attempts = draftData.qStates[qId].attempts || 0;
+                        questionStates[qId].maxPoints = draftData.qStates[qId].maxPoints ?? 5;
+                        questionStates[qId].isCorrect = draftData.qStates[qId].isCorrect || false;
 
-                    draftData.q21.pool?.forEach(item => {
-                        if (typeof restoreChemChip === 'function') restoreChemChip(item, 'chem_pool');
-                    });
-                    draftData.q21.reactants?.forEach(item => {
-                        if (typeof restoreChemChip === 'function') restoreChemChip(item, 'reactants_zone');
-                    });
-                    draftData.q21.products?.forEach(item => {
-                        if (typeof restoreChemChip === 'function') restoreChemChip(item, 'products_zone');
-                    });
-                }
-
-                if (draftData.qStates) {
-                    Object.keys(draftData.qStates).forEach(qId => {
-                        if (questionStates[qId]) {
-                            questionStates[qId].attempts = draftData.qStates[qId].attempts || 0;
-                            questionStates[qId].maxPoints = draftData.qStates[qId].maxPoints ?? 5;
-                            questionStates[qId].isCorrect = draftData.qStates[qId].isCorrect || false;
-
-                            // 🐛 完美修復：同時相容大小寫，且絕對不報錯
-                            if (questionStates[qId].type === 'multi-mcq') {
-                                const draftSubs = draftData.qStates[qId].substates || draftData.qStates[qId].subStates;
-                                const localSubs = questionStates[qId].substates || questionStates[qId].subStates;
-
-                                if (draftSubs && localSubs && localSubs.length === draftSubs.length) {
-                                    // 為了防呆，把大寫和小寫都綁定同一份進度，以後怎麼讀都不會錯！
-                                    questionStates[qId].substates = draftSubs;
-                                    questionStates[qId].subStates = draftSubs;
-                                }
+                        if (questionStates[qId].type === 'multi-mcq') {
+                            const draftSubs = draftData.qStates[qId].substates || draftData.qStates[qId].subStates;
+                            const localSubs = questionStates[qId].substates || questionStates[qId].subStates;
+                            if (draftSubs && localSubs && localSubs.length === draftSubs.length) {
+                                questionStates[qId].substates = draftSubs;
+                                questionStates[qId].subStates = draftSubs;
                             }
                         }
-                    });
+                    }
+                });
 
-                    Object.keys(questionStates).forEach(qId => {
-                        if (qId === 'q21') return;
-                        if (typeof updateQuestionUI === 'function') updateQuestionUI(qId);
-                    });
-
-                    if (document.getElementById('q21_btn') && typeof updateChemUI === 'function') updateChemUI('q21');
-                }
-                if (typeof updateGroupButtons === 'function') updateGroupButtons();
+                Object.keys(questionStates).forEach(qId => {
+                    if (qId === 'q21') return;
+                    if (typeof updateQuestionUI === 'function') updateQuestionUI(qId);
+                });
             }
-        } catch (e) {
-            // 🛡️ 拿掉會亂刪除檔案的指令，只印出錯誤，保護學生的作答進度
-            console.error("載入暫存檔發生小錯誤，已為您保護草稿:", e);
+            console.log("🎉 [讀檔完成] 所有答案已還原！");
+
+        } else {
+            console.warn(`⛔ [讀檔阻擋] 登入者(${window.currentStudentId}) 與 草稿主人(${draftData.student_id}) 不符！放棄還原。`);
         }
+    } catch (e) {
+        console.error("❌ [讀檔發生例外錯誤]:", e);
     }
 }
 
