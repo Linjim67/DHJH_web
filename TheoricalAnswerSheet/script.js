@@ -1235,34 +1235,40 @@ async function submitExam() {
     Object.keys(questionStates).forEach(qId => {
         const qState = questionStates[qId];
         let earnedPoints = 0;
-        let studentAnswer = "無法讀取";
         let isCorrect = false;
 
-        // 1. 抓取學生答案 (增加偵測)
-        if (qState.type === 'mcq') {
-            studentAnswer = getRadioValue(qId);
-        } else if (qState.type === 'fill-in') {
-            studentAnswer = document.getElementById(qId)?.value || "Empty";
-        } else if (qState.type === 'mixed') {
-            const txt = document.getElementById(`${qId}_text`)?.value || "";
-            const rad = getRadioValue(`${qId}_radio`);
-            studentAnswer = `Text:${txt}, Radio:${rad}`;
+        // 1. 如果學生按過檢查且正確，信任之
+        if (qState.isCorrect === true) {
+            earnedPoints = qState.maxPoints;
+        } else {
+            // 2. 否則強制執行批改 (這次傳入 qId 和 答案)
+            if (qState.type === 'mcq') {
+                const answer = getRadioValue(qId);
+                // 🚀 傳入 qId 和 answer
+                if (window.encryptAnswer(qId, answer) === qState.correctHash) isCorrect = true;
+            } else if (qState.type === 'fill-in') {
+                const answer = document.getElementById(qId)?.value || "";
+                // 🚀 傳入 qId 和 answer
+                if (window.encryptAnswer(qId, answer) === qState.correctHash) isCorrect = true;
+            } else if (qState.type === 'mixed') {
+                const txt = document.getElementById(`${qId}_text`)?.value || "";
+                const rad = getRadioValue(`${qId}_radio`);
+                // 🚀 傳入 qId 和答案部分
+                if (window.encryptAnswer(qId, txt) === qState.correctHash.text &&
+                    window.encryptAnswer(qId, rad) === qState.correctHash.radio) isCorrect = true;
+            } else if (qState.type === 'multi-mcq') {
+                const hashLength = qState.correctHash ? qState.correctHash.length : 0;
+                const userAnswers = [];
+                for (let i = 0; i < hashLength; i++) {
+                    // 🚀 傳入 qId 和各個選項
+                    userAnswers.push(window.encryptAnswer(qId, getRadioValue(`${qId}_${i + 1}`) || ""));
+                }
+                if (JSON.stringify(userAnswers) === JSON.stringify(qState.correctHash)) isCorrect = true;
+            }
 
-            if (window.encryptAnswer(txt) === qState.correctHash.text &&
-                window.encryptAnswer(rad) === qState.correctHash.radio) isCorrect = true;
+            if (isCorrect) earnedPoints = qState.maxPoints;
         }
 
-        // 2. 批改並印出結果
-        if (qState.type === 'mcq' || qState.type === 'fill-in') {
-            const studentHash = window.encryptAnswer(studentAnswer);
-            if (studentHash === qState.correctHash) isCorrect = true;
-
-            // 偵探日誌：看看系統讀到的答案和亂碼是不是我們想的那樣
-            console.log(`[批改偵探] 題號: ${qId} | 學生讀取答案: "${studentAnswer}" | 學生亂碼: ${studentHash} | 正確亂碼: ${qState.correctHash} | 結果: ${isCorrect ? "✅ 正確" : "❌ 錯誤"}`);
-        }
-
-        // 結算
-        earnedPoints = isCorrect ? qState.maxPoints : 0;
         payload.scores[qId] = earnedPoints;
         totalScore += earnedPoints;
     });
