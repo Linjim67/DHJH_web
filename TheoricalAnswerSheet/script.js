@@ -55,13 +55,13 @@ const questionStates = {
     q301: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "77aad06c" },
     q302: { type: 'fill-in', attempts: 0, maxPoints: 5, isCorrect: false, correctHash: "e0d6a1a3" }
 };
-// ==========================================
-// 模組：系統參數設定 (密碼與時間鎖)
-// ==========================================
+
+
 const EXAM_CONFIG = {
-    password: "123",        // 【請在此修改】統一測驗密碼
-    startTime: "17:30",     // 【請在此修改】統一開始時間 (24小時制，如 "17:30")
-    enableTimeCheck: false   // 是否啟用時間限制 (true: 啟用 / false: 關閉)
+    startTime: "14:45", // 14:20
+    endTime: "14:52",   // 16:00
+    durationMinutes: 7, // 100
+    enableTimeCheck: true
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -171,25 +171,146 @@ function unlockExam(uid, displayName) {
 // ==========================================
 // 🚨 系統入口：監聽從母網站傳過來的登入狀態
 // ==========================================
+
+let authWarningDiv = null;
+let examTimerInterval = null;
+
 onAuthStateChanged(auth, (user) => {
     if (user && !user.isAnonymous) {
-        // 抓到主網站傳來的帳號了！
-        // 1. 隱藏舊的登入區塊
-        const loginSection = document.getElementById('login_section');
-        if (loginSection) loginSection.style.display = 'none';
+        // 1. 移除全螢幕警告
+        if (authWarningDiv) {
+            authWarningDiv.remove();
+            authWarningDiv = null;
+        }
+        document.body.style.overflow = 'auto';
 
-        // 2. 顯示考卷區塊
-        const examSection = document.getElementById('exam_section');
-        if (examSection) examSection.style.display = 'block';
-
-        // 3. 記錄考生資料
+        // 2. 記錄考生資料 (交卷時必備)
         window.currentStudentId = user.uid;
-        window.currentStudentName = user.displayName || user.email;
+        window.currentStudentName = user.displayName || user.email.split('@')[0];
+
+        // 3. 強制把考卷區塊顯示出來
+        const examSection = document.getElementById('exam_section');
+        if (examSection) {
+            examSection.style.display = 'block';
+            examSection.classList.remove('hidden');
+        }
+
+        // 4. 開考時間檢查 (若 enableTimeCheck 為 true 才執行)
+        if (EXAM_CONFIG.enableTimeCheck) {
+            const now = new Date();
+            const [startH, startM] = EXAM_CONFIG.startTime.split(':').map(Number);
+            const startDate = new Date();
+            startDate.setHours(startH, startM, 0, 0);
+
+            if (now < startDate) {
+                alert(`⏳ 測驗尚未開始！統一開考時間為 ${EXAM_CONFIG.startTime}，請稍後再重新整理網頁。`);
+                if (examSection) examSection.style.display = 'none'; // 再次隱藏考卷
+                return;
+            }
+        }
+
+        // 5. 啟動強制收卷計時器
+        startExamTimer();
+
     } else {
-        // 還沒抓到帳號，顯示載入中
-        document.body.innerHTML = "<h2>正在同步登入狀態...</h2>";
+        // 尚未登入時，蓋上一層全螢幕的警告
+        if (!authWarningDiv) {
+            authWarningDiv = document.createElement('div');
+            authWarningDiv.style.cssText = 'position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f8f9fa; font-family: sans-serif; color: #d93025; text-align: center;';
+            authWarningDiv.innerHTML = `
+                <div>
+                    <h1 style="font-size: 48px; margin-bottom: 10px;">🛡️</h1>
+                    <h2>拒絕存取</h2>
+                    <p>正在同步登入狀態...<br>若長時間卡住，請確認您已從主網站右上角登入系統。</p>
+                </div>
+            `;
+            document.body.appendChild(authWarningDiv);
+            document.body.style.overflow = 'hidden';
+        }
     }
 });
+
+// ==========================================
+// ⏱️ 動態倒數計時與強制交卷機制
+// ==========================================
+function startExamTimer() {
+    if (examTimerInterval) clearInterval(examTimerInterval);
+
+    const now = new Date();
+
+    // 條件一：今天的 16:00 絕對死線
+    const hardDeadline = new Date();
+    const [endH, endM] = EXAM_CONFIG.endTime.split(':').map(Number);
+    hardDeadline.setHours(endH, endM, 0, 0);
+
+    // 條件二：從現在起算 100 分鐘
+    const durationDeadline = new Date(now.getTime() + EXAM_CONFIG.durationMinutes * 60000);
+
+    // 取兩者中「最早」的時間作為最終強制交卷時間
+    const finalDeadline = new Date(Math.min(hardDeadline.getTime(), durationDeadline.getTime()));
+
+    // 如果學生遲到太久，現在已經超過 16:00，立刻收卷
+    if (now >= finalDeadline) {
+        forceSubmitExam("考試時間已結束 (16:00)，系統將不予計算成績或自動交卷。");
+        return;
+    }
+
+    // 動態在右下角建立精美的浮動計時器 UI
+    let timerDiv = document.getElementById('exam-timer-float');
+    if (!timerDiv) {
+        timerDiv = document.createElement('div');
+        timerDiv.id = 'exam-timer-float';
+        // 加入 CSS 動畫與樣式
+        timerDiv.style.cssText = `
+            position: fixed; bottom: 30px; right: 30px; 
+            background: #ffffff; border: 2px solid #ef4444; border-radius: 12px; 
+            padding: 12px 20px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2); 
+            z-index: 9999; font-weight: bold; color: #ef4444; 
+            display: flex; align-items: center; gap: 8px; 
+            font-family: 'Courier New', Courier, monospace; font-size: 20px;
+            transition: all 0.3s ease;
+        `;
+        document.body.appendChild(timerDiv);
+
+        // 植入閃爍動畫的 style
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes timerPulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }`;
+        document.head.appendChild(style);
+    }
+
+    // 每秒更新計時器
+    examTimerInterval = setInterval(() => {
+        const currentTime = new Date();
+        const diffMs = finalDeadline.getTime() - currentTime.getTime();
+
+        // 時間到！強制交卷！
+        if (diffMs <= 0) {
+            clearInterval(examTimerInterval);
+            timerDiv.innerHTML = '<span class="material-symbols-outlined">alarm_on</span> 考試結束，自動交卷中...';
+            timerDiv.style.backgroundColor = '#ef4444';
+            timerDiv.style.color = '#ffffff';
+            forceSubmitExam("⏰ 考試時間已結束！系統正在為您強制自動交卷！");
+            return;
+        }
+
+        // 計算剩餘分秒
+        const m = Math.floor(diffMs / 60000);
+        const s = Math.floor((diffMs % 60000) / 1000);
+        timerDiv.innerHTML = `<span class="material-symbols-outlined">timer</span> 剩餘時間：${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+        // 最後 5 分鐘變色 + 閃爍警告
+        if (m < 5) {
+            timerDiv.style.backgroundColor = '#fef2f2';
+            timerDiv.style.animation = 'timerPulse 1s infinite';
+        }
+    }, 1000);
+}
+
+// 執行強制交卷
+function forceSubmitExam(msg) {
+    alert(msg);
+    submitExam();
+}
 
 function setupAutoSave() {
     try {
