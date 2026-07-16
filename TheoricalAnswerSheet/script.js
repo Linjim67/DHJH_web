@@ -489,7 +489,7 @@ function saveDraft() {
                 };
             } else if (qState.type === 'multi-mcq') {
                 draftData.answers[qId] = [];
-                for (let i = 0; i < qState.correctAnswer.length; i++) {
+                for (let i = 0; i < qState.correctHash.length; i++) {
                     draftData.answers[qId].push(getRadioValue(`${qId}_${i + 1}`));
                 }
             }
@@ -652,7 +652,7 @@ function updateQuestionUI(qId) {
                 });
 
                 if (sub.isCorrect) {
-                    const correctInput = document.querySelector(`input[name="${qId}_${idx + 1}"][value="${qState.correctAnswer[idx]}"]`);
+                    const correctInput = document.querySelector(`input[name="${qId}_${idx + 1}"][value="${qState.correctHash[idx]}"]`);
                     if (correctInput) {
                         correctInput.checked = true;
                         if (correctInput.parentElement) {
@@ -664,7 +664,7 @@ function updateQuestionUI(qId) {
                     }
                     groupInputs.forEach(input => input && (input.disabled = true));
                 } else if (qState.maxPoints === 0) {
-                    const correctInput = document.querySelector(`input[name="${qId}_${idx + 1}"][value="${qState.correctAnswer[idx]}"]`);
+                    const correctInput = document.querySelector(`input[name="${qId}_${idx + 1}"][value="${qState.correctHash[idx]}"]`);
                     if (correctInput) {
                         correctInput.checked = true;
                         if (correctInput.parentElement) {
@@ -727,7 +727,7 @@ function updateQuestionUI(qId) {
 
             if (qState.type === 'mcq') {
                 inputs.forEach(input => {
-                    if (input && input.value === qState.correctAnswer) {
+                    if (input && input.value === qState.correctHash) {
                         input.checked = true;
                         if (input.parentElement) {
                             input.parentElement.style.color = 'var(--danger-color)';
@@ -737,19 +737,19 @@ function updateQuestionUI(qId) {
                 });
             } else if (qState.type === 'fill-in') {
                 if (inputs[0]) {
-                    inputs[0].value = qState.correctAnswer;
+                    inputs[0].value = qState.correctHash;
                     inputs[0].style.color = 'var(--danger-color)';
                     inputs[0].style.fontWeight = 'bold';
                 }
             } else if (qState.type === 'mixed') {
                 const textEl = document.getElementById(`${qId}_text`);
                 if (textEl) {
-                    textEl.value = qState.correctAnswer.text;
+                    textEl.value = qState.correctHash.text;
                     textEl.style.color = 'var(--danger-color)';
                     textEl.style.fontWeight = 'bold';
                 }
                 document.querySelectorAll(`input[name="${qId}_radio"]`).forEach(radio => {
-                    if (radio && radio.value === qState.correctAnswer.radio) {
+                    if (radio && radio.value === qState.correctHash.radio) {
                         radio.checked = true;
                         if (radio.parentElement) {
                             radio.parentElement.style.color = 'var(--danger-color)';
