@@ -836,7 +836,7 @@ function requestCheck(qId) {
             hasAnswer = !!radioEl && hasText;
         } else if (qState.type === 'multi-mcq') {
             hasAnswer = true;
-            // 🐛 完美修復：相容大小寫，避免當機
+            // 相容 subStates 與 substates 拼寫
             const subList = qState.subStates || qState.substates;
             for (let i = 0; i < qState.correctHash.length; i++) {
                 if (!subList[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
@@ -904,7 +904,6 @@ function requestGroupCheck(qIdsStr) {
                 hasAnswer = !!radioEl && hasText;
             } else if (qState.type === 'multi-mcq') {
                 hasAnswer = true;
-                // 🐛 完美修復：相容大小寫，避免當機
                 const subList = qState.subStates || qState.substates;
                 for (let i = 0; i < qState.correctHash.length; i++) {
                     if (!subList[i].isCorrect && !document.querySelector(`input[name="${qId}_${i + 1}"]:checked`)) {
@@ -968,7 +967,6 @@ function executeGroupCheck(qIds) {
             } else {
                 let isCorrect = false;
 
-                // 【套用加密引擎比對】
                 if (qState.type === 'mcq') {
                     const el = document.querySelector(`input[name="${qId}"]:checked`);
                     isCorrect = el && window.encryptAnswer(qId, el.value) === qState.correctHash;
@@ -987,18 +985,18 @@ function executeGroupCheck(qIds) {
                     isCorrect = radioCorrect && textCorrect;
                 } else if (qState.type === 'multi-mcq') {
                     let allSubCorrect = true;
-                    // 🐛 完美修復：相容大小寫，避免當機
                     const subList = qState.subStates || qState.substates;
                     for (let i = 0; i < qState.correctHash.length; i++) {
                         const sub = subList[i];
                         if (sub.isCorrect) continue;
                         const el = document.querySelector(`input[name="${qId}_${i + 1}"]:checked`);
+                        const userAns = el ? String(el.value || "").trim() : "";
 
-                        if (el && window.encryptAnswer(`${qId}_${i + 1}`, el.value) === qState.correctHash[i]) {
+                        if (el && window.encryptAnswer(`${qId}_${i + 1}`, userAns) === qState.correctHash[i]) {
                             sub.isCorrect = true;
                         } else {
                             allSubCorrect = false;
-                            if (el && !sub.checkedHistory.includes(el.value)) sub.checkedHistory.push(el.value);
+                            if (el && !sub.checkedHistory.includes(userAns)) sub.checkedHistory.push(userAns);
                         }
                     }
                     isCorrect = allSubCorrect;
@@ -1024,10 +1022,98 @@ function executeGroupCheck(qIds) {
             }
         });
 
-        saveDraft();
+        if (typeof saveDraft === 'function') saveDraft();
         showAlert("一鍵檢驗結果報告", results.join('\n'));
     } catch (e) {
         console.error("Group check execution failed:", e);
+    }
+}
+
+function executeCheck(qId) {
+    try {
+        const qState = questionStates[qId];
+        if (!qState) return;
+
+        let isCorrect = false;
+
+        if (qState.type === 'mcq') {
+            const el = document.querySelector(`input[name="${qId}"]:checked`);
+            const userAns = el ? String(el.value || "").trim() : "";
+            isCorrect = el && window.encryptAnswer(qId, userAns) === qState.correctHash;
+        } else if (qState.type === 'fill-in') {
+            const el = document.getElementById(qId);
+            const userAnswer = el ? String(el.value || "").trim() : "";
+            isCorrect = window.encryptAnswer(qId, userAnswer) === qState.correctHash;
+        } else if (qState.type === 'mixed') {
+            // 【修復與偵錯版：混合題】
+            const el = document.querySelector(`input[name="${qId}_radio"]:checked`);
+            const radioAns = el ? String(el.value || "").trim() : "未選擇";
+            const myRadioHash = window.encryptAnswer(`${qId}_radio`, radioAns);
+            const radioCorrect = el && myRadioHash === qState.correctHash.radio;
+
+            const textEl = document.getElementById(`${qId}_text`);
+            const textAns = textEl ? String(textEl.value || "").trim() : "未填寫";
+            const myTextHash = window.encryptAnswer(`${qId}_text`, textAns);
+            const textCorrect = textEl && myTextHash === qState.correctHash.text;
+
+            // 將比對結果印在 F12 Console 中
+            console.log(`==== 題號 ${qId} 偵錯報告 ====`);
+            console.log(`[選擇] 學生答案: "${radioAns}" | 學生亂碼: ${myRadioHash} | 系統正確亂碼: ${qState.correctHash.radio}`);
+            console.log(`[填充] 學生答案: "${textAns}" | 學生亂碼: ${myTextHash} | 系統正確亂碼: ${qState.correctHash.text}`);
+
+            isCorrect = radioCorrect && textCorrect;
+
+        } else if (qState.type === 'multi-mcq') {
+            // 【修復版：多選題 (解決 TypeError: reading '0')】
+            let allSubCorrect = true;
+            const subList = qState.subStates || qState.substates;
+
+            for (let i = 0; i < qState.correctHash.length; i++) {
+                const sub = subList[i];
+                if (sub.isCorrect) continue;
+
+                const el = document.querySelector(`input[name="${qId}_${i + 1}"]:checked`);
+                const userAns = el ? String(el.value || "").trim() : "";
+
+                if (el && window.encryptAnswer(`${qId}_${i + 1}`, userAns) === qState.correctHash[i]) {
+                    sub.isCorrect = true;
+                } else {
+                    allSubCorrect = false;
+                    if (el && !sub.checkedHistory.includes(userAns)) {
+                        sub.checkedHistory.push(userAns);
+                    }
+                }
+            }
+            isCorrect = allSubCorrect;
+        }
+
+        qState.attempts++;
+
+        if (isCorrect) {
+            qState.isCorrect = true;
+            updateQuestionUI(qId);
+            showAlert("檢驗結果：正確", `驗證通過。本題獲得 ${qState.maxPoints} 分。`);
+        } else {
+            if (qState.type === 'mcq') {
+                const mcqScores = [5, 2, 1, 0];
+                qState.maxPoints = mcqScores[Math.min(qState.attempts, 3)];
+            } else if (qState.type === 'multi-mcq') {
+                qState.maxPoints = Math.max(0, qState.maxPoints - 1);
+            } else {
+                qState.maxPoints = Math.max(0, qState.maxPoints - 1);
+            }
+
+            updateQuestionUI(qId);
+
+            if (qState.maxPoints === 0) {
+                showAlert("檢驗結果：失敗", `本題分數已扣至 0 分。\n系統已鎖定欄位並公布正確答案。`);
+            } else {
+                showAlert("檢驗結果：錯誤", `答案不正確，請重新作答。\n本題當前最高可得 ${qState.maxPoints} 分。`);
+            }
+        }
+        if (typeof saveDraft === 'function') saveDraft();
+    } catch (e) {
+        console.error(`Check execution failed for ${qId}:`, e);
     }
 }
 
