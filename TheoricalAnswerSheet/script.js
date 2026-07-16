@@ -167,9 +167,9 @@ function unlockExam(uid, displayName) {
 // ==========================================
 const EXAM_CONFIG = {
     startTime: "15:20",     // 14:20
-    endTime: "15:25",       // 16:00
-    durationMinutes: 5,   // 100
-    enableTimeCheck: false   // true 
+    endTime: "19:00",       // 16:00
+    durationMinutes: 400,   // 100
+    enableTimeCheck: true   // true 
 };
 
 // ==========================================
