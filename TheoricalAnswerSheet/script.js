@@ -197,6 +197,8 @@ onAuthStateChanged(auth, (user) => {
             studentInfoDisplay.innerText = `考生：${window.currentStudentName}`;
         }
 
+        loadDraft();
+
         const waitingSection = document.getElementById('waiting_section');
         const examSection = document.getElementById('exam_section');
 
