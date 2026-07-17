@@ -51,7 +51,7 @@
     <!-- 載入中畫面 -->
     <div id="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
         <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-        <p class="text-gray-500 font-medium tracking-wider">系統載入中，正在計算常態分佈...</p>
+        <p class="text-gray-500 font-medium tracking-wider">系統載入中...</p>
     </div>
 
     <!-- 主要內容區 -->
@@ -119,22 +119,22 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-    // ==========================================
-    // 核心繪圖函數：生成 SVG Box Plot (水平與垂直)
-    // ==========================================
+        // ==========================================
+        // 核心繪圖函數：生成 SVG Box Plot (水平與垂直)
+        // ==========================================
 
-    /* STREAMING_CHUNK:重寫為極簡扁平化向量風格盒鬚圖 */
-    // 生成水平盒鬚圖 (大題用)
-    function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
-        // 直接轉換為百分比座標，避免 viewBox 縮放造成的圖形變形
-        const xMin = (min / maxScore) * 100;
-        const xMax = (max / maxScore) * 100;
-        const xLq = (lq / maxScore) * 100;
-        const xUq = (uq / maxScore) * 100;
-        const xMed = (median / maxScore) * 100;
-        const xScore = (score / maxScore) * 100;
+        /* STREAMING_CHUNK:重寫為極簡扁平化向量風格盒鬚圖 */
+        // 生成水平盒鬚圖 (大題用)
+        function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
+            // 直接轉換為百分比座標，避免 viewBox 縮放造成的圖形變形
+            const xMin = (min / maxScore) * 100;
+            const xMax = (max / maxScore) * 100;
+            const xLq = (lq / maxScore) * 100;
+            const xUq = (uq / maxScore) * 100;
+            const xMed = (median / maxScore) * 100;
+            const xScore = (score / maxScore) * 100;
 
-        return `
+            return `
                 <svg width="100%" height="40" class="overflow-visible">
                     <!-- 邊界參考線 (0% 與 100%) -->
                     <line x1="0%" y1="10" x2="0%" y2="30" stroke="#5b697b" stroke-width="2.5" stroke-linecap="round" />
@@ -161,20 +161,20 @@
                     </svg>
                 </svg>
             `;
-    }
+        }
 
-    // 生成垂直盒鬚圖 (單題用，最高分恆定為 5 分)
-    function createVerticalBoxPlot(min, max, lq, median, uq, score) {
-        // Y 軸從下到上是 0% 到 100%，SVG的 y=0 則是在畫面上方
-        const mapY = (val) => 100 - ((val / 5) * 100);
-        const yMin = mapY(min);
-        const yMax = mapY(max);
-        const yLq = mapY(lq);
-        const yUq = mapY(uq);
-        const yMed = mapY(median);
-        const yScore = mapY(score);
+        // 生成垂直盒鬚圖 (單題用，最高分恆定為 5 分)
+        function createVerticalBoxPlot(min, max, lq, median, uq, score) {
+            // Y 軸從下到上是 0% 到 100%，SVG的 y=0 則是在畫面上方
+            const mapY = (val) => 100 - ((val / 5) * 100);
+            const yMin = mapY(min);
+            const yMax = mapY(max);
+            const yLq = mapY(lq);
+            const yUq = mapY(uq);
+            const yMed = mapY(median);
+            const yScore = mapY(score);
 
-        return `
+            return `
                 <svg width="40" height="100%" style="min-height:100px;" class="overflow-visible">
                     <!-- 背景參考線 (0分, 5分) -->
                     <line x1="10" y1="100%" x2="30" y2="100%" stroke="#5b697b" stroke-width="2.5" stroke-linecap="round" />
@@ -201,7 +201,7 @@
                     </svg>
                 </svg>
             `;
-    }
+        }
 
         // ==========================================
         // 渲染畫面邏輯
@@ -274,19 +274,24 @@
                     // 若沒有此題的統計資料則略過
                     if (!qStats) return;
 
+                    let displayTitle = qId;
+                    if (qId.length === 3 && (qId.startsWith('23') || qId.startsWith('30'))) {
+                        displayTitle = `${qId.substring(0, 2)}-${qId.substring(2)}`;
+                    }
+
                     questionsHtml += `
                         <div class="flex flex-col items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm w-[72px] hover:shadow-md transition-shadow">
-                            <div class="text-sm font-bold text-gray-700 mb-1">${qId}</div>
+                            <div class="text-sm font-bold text-gray-700 mb-1">${displayTitle}</div>
                             <div class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded mb-3 border border-blue-100">
                                 ${myScore}<span class="text-gray-400">/5</span>
                             </div>
                             <!-- 繪製垂直 Box Plot -->
                             <div class="relative w-10 h-[100px]">
                                 ${createVerticalBoxPlot(
-                        qStats.low, qStats.high,
-                        qStats.lq, qStats.median, qStats.uq,
-                        myScore
-                    )}
+                                    qStats.low, qStats.high,
+                                    qStats.lq, qStats.median, qStats.uq,
+                                    myScore
+                                )}
                             </div>
                         </div>
                     `;
@@ -312,72 +317,7 @@
         }
 
         // ==========================================
-        // 模擬數據產生器 (Mock Data Generator)
-        // ==========================================
-        // 當找不到資料庫或未登入時，產生假資料讓您預覽完美畫面
-        function generateMockData(uid, name) {
-            document.getElementById('student-name').innerText = `學生：${name || '訪客預覽模式'}`;
-
-            // 模擬考生的真實作答結構 { "1": 3, "23-1": 5, ... }
-            const mockTheoryScores = {
-                "1": 3, "2": 5, "3": 4, "4": 1, "5": 0,
-                "23-1": 5, "23-2": 2, "23-3": 4,
-                "30-1": 1, "30-2": 5
-            };
-
-            const studentData = {
-                practicalScore: 85,
-                theoryScores: mockTheoryScores,
-                groupScores: {
-                    "Part1": 13, // 3+5+4+1+0
-                    "Part2": 11, // 5+2+4
-                    "Part3": 6   // 1+5
-                }
-            };
-
-            const publicData = {
-                totalStudents: 156,
-                groups: {
-                    "Part1": {
-                        title: "第一大題：單選題", maxScore: 25,
-                        mean: 18.5, median: 19, high: 25, low: 5, uq: 22, lq: 14,
-                        questions: ["1", "2", "3", "4", "5"]
-                    },
-                    "Part2": {
-                        title: "第二大題：題組 (第23題)", maxScore: 15,
-                        mean: 9.2, median: 10, high: 15, low: 0, uq: 12, lq: 6,
-                        questions: ["23-1", "23-2", "23-3"]
-                    },
-                    "Part3": {
-                        title: "第三大題：題組 (第30題)", maxScore: 10,
-                        mean: 5.8, median: 6, high: 10, low: 0, uq: 8, lq: 3,
-                        questions: ["30-1", "30-2"]
-                    }
-                },
-                // 單題統計 (滿分5分)
-                questions: {
-                    "1": { mean: 3.2, median: 3, high: 5, low: 0, uq: 4, lq: 2 },
-                    "2": { mean: 4.1, median: 5, high: 5, low: 1, uq: 5, lq: 3 },
-                    "3": { mean: 2.5, median: 2, high: 5, low: 0, uq: 4, lq: 1 },
-                    "4": { mean: 1.8, median: 1, high: 5, low: 0, uq: 3, lq: 0 },
-                    "5": { mean: 4.8, median: 5, high: 5, low: 2, uq: 5, lq: 4 },
-                    "23-1": { mean: 3.5, median: 4, high: 5, low: 0, uq: 5, lq: 2 },
-                    "23-2": { mean: 2.1, median: 2, high: 5, low: 0, uq: 3, lq: 1 },
-                    "23-3": { mean: 3.8, median: 4, high: 5, low: 1, uq: 5, lq: 3 },
-                    "30-1": { mean: 1.5, median: 1, high: 5, low: 0, uq: 2, lq: 0 },
-                    "30-2": { mean: 4.2, median: 5, high: 5, low: 0, uq: 5, lq: 3 }
-                }
-            };
-
-            setTimeout(() => {
-                renderTranscript(studentData, publicData);
-            }, 800); // 模擬網路延遲
-        }
-
-        // ==========================================
         // 初始化與身份驗證
-        // ==========================================
-        // 初始化與身份驗證 (真實資料庫讀取)
         // ==========================================
 
         // 定義大題結構與配分 (供前端自動計算大題總分與防呆使用)
@@ -420,7 +360,7 @@
                     "Part5": {
                         title: "第五大題", maxScore: 60,
                         mean: 38.4, median: 40, high: 60, low: 15, uq: 50, lq: 30,
-                        questions: ["21", "22", "23-1", "23-2", "24", "25", "26", "27", "28", "29", "30-1", "30-2"]
+                        questions: ["21", "22", "231", "232", "24", "25", "26", "27", "28", "29", "301", "302"]
                     }
                 },
                 questions: {}
@@ -461,7 +401,6 @@
         } else {
             onAuthStateChanged(auth, async (user) => {
                 if (!user || user.isAnonymous) {
-                    // ⚠️ 關鍵修正：只隱藏內容，不摧毀整個 DOM 結構
                     document.getElementById('transcript-content').classList.add('hidden');
                     document.getElementById('loading').innerHTML = `
                             <div class="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">

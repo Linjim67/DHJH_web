@@ -1324,7 +1324,6 @@ async function submitExam() {
         // 🚀 真實 Firebase 上傳邏輯
         // 路徑: artifacts/dhjh-summer-camp/users/{uid}/exam_results/theory_test_1
         // ==========================================
-        // 注意：請確保檔案最上方有 import { doc, setDoc } 和宣告 db
         const resultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', window.currentStudentId, 'exam_results', 'theory_test_1');
 
         await setDoc(resultRef, {
