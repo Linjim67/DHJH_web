@@ -229,12 +229,11 @@
 
                 let questionsHtml = '<div class="accordion-inner"><div class="p-6 flex flex-wrap gap-4 md:gap-6 justify-center md:justify-start">';
 
-                groupStats.questions.forEach(qId => {
+                QUESTION_GROUPS[groupId].questions.forEach(qId => {
                     // 若無統計資料，給予預設值，確保學生的分數一定能畫出來
                     const qStats = publicData.questions[qId] || { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0 };
                     const myScore = studentData.theoryScores[qId] !== undefined ? studentData.theoryScores[qId] : 0;
 
-                    // 💡 視覺化妝：將底層的 231 轉換為 23-1 顯示在畫面上
                     let displayTitle = qId;
                     if (qId === '231') displayTitle = '23-1';
                     if (qId === '232') displayTitle = '23-2';
