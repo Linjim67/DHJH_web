@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暑期競標</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .terminal {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            background: #0f172a;
+        }
+
+        .terminal-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 text-gray-800">
+
+    <div id="loading" class="flex flex-col items-center justify-center py-32 space-y-4">
+        <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p class="text-gray-500 font-medium tracking-wider">系統載入中，正在結算點數...</p>
+    </div>
+
+    <div id="auction-content" class="hidden max-w-4xl mx-auto space-y-6">
+        <header
+            class="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -z-10 opacity-50"></div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 tracking-tight flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-500 text-3xl">gavel</span>
+                    暑期競標
+                </h1>
+                <p id="student-name" class="text-gray-500 mt-1 font-medium">學生：載入中...</p>
+            </div>
+            <div class="text-center bg-amber-50 px-6 py-3 rounded-2xl border border-amber-100">
+                <div class="text-xs text-amber-600 font-semibold uppercase tracking-wider mb-1">目前餘額</div>
+                <div id="wallet-balance" class="text-3xl font-bold text-amber-700">--</div>
+            </div>
+        </header>
+
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400">receipt_long</span>
+                <h2 class="font-bold text-gray-700">交易紀錄</h2>
+            </div>
+            <div id="ledger" class="terminal p-5 space-y-1 max-h-[60vh] overflow-y-auto text-sm">
+                <!-- 交易紀錄由 JS 動態產生 -->
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAZ7cCQlXh8oiNzwnT2LL07KPt5TMaI2d8",
+            authDomain: "dhjhweb.firebaseapp.com",
+            projectId: "dhjhweb",
+            storageBucket: "dhjhweb.firebasestorage.app",
+            messagingSenderId: "763721572642",
+            appId: "1:763721572642:web:fee3751366cba01bc0c57b",
+            measurementId: "G-9CM3NBLLLS"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        function formatClock(isoString) {
+            const d = new Date(isoString);
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        function renderLedger(transactions) {
+            const ledgerEl = document.getElementById('ledger');
+            ledgerEl.innerHTML = '';
+
+            if (transactions.length === 0) {
+                ledgerEl.innerHTML = `<div class="terminal-line text-slate-500">尚無交易紀錄。</div>`;
+                return;
+            }
+
+            transactions.forEach(txn => {
+                const isDeposit = txn.amount >= 0;
+                const sign = isDeposit ? '+' : '';
+                const colorClass = isDeposit ? 'text-emerald-400' : 'text-red-400';
+                const line = document.createElement('div');
+                line.className = 'terminal-line text-slate-300';
+                line.innerHTML =
+                    `<span class="text-slate-500">[${formatClock(txn.timestamp)}]</span> ` +
+                    `<span class="text-slate-100">${txn.label}</span> ` +
+                    `<span class="${colorClass}">(${sign}${txn.amount})</span> ` +
+                    `<span class="text-slate-400">(${txn.balanceAfter} now)</span>`;
+                ledgerEl.appendChild(line);
+            });
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user || user.isAnonymous) {
+                document.body.innerHTML = `
+                    <div class="flex items-center justify-center h-screen bg-gray-50">
+                        <div class="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+                            <span class="material-symbols-outlined text-red-400 text-5xl mb-4">lock</span>
+                            <h2 class="text-xl font-bold text-gray-800">請先登入</h2>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            try {
+                document.getElementById('student-name').innerText = `學生：${user.displayName || user.email}`;
+
+                const examRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
+                const examSnap = await getDoc(examRef);
+
+                if (!examSnap.exists()) {
+                    document.getElementById('loading').innerHTML = `
+                        <div class="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100 max-w-md mx-auto">
+                            <span class="material-symbols-outlined text-amber-400 text-5xl mb-4">lock_clock</span>
+                            <h2 class="text-xl font-bold text-gray-800 mb-1">尚未解鎖</h2>
+                            <p class="text-gray-500 text-sm">完成「暑期理論作答」交卷後，即可解鎖競標點數。</p>
+                        </div>`;
+                    return;
+                }
+
+                const walletRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'wallet', 'summer_auction');
+                const walletSnap = await getDoc(walletRef);
+                const balance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
+                document.getElementById('wallet-balance').innerText = balance;
+
+                const txnQuery = query(
+                    collection(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'wallet', 'summer_auction', 'transactions'),
+                    orderBy('timestamp', 'asc')
+                );
+                const txnSnap = await getDocs(txnQuery);
+                const transactions = txnSnap.docs.map(d => d.data());
+                renderLedger(transactions);
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('auction-content').classList.remove('hidden');
+
+            } catch (e) {
+                console.error("競標資料讀取失敗:", e);
+                document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">資料讀取失敗，請稍後再試。</p>`;
+            }
+        });
+    </script>
+</body>
+
+</html>

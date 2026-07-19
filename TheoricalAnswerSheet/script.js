@@ -60,7 +60,7 @@ const questionStates = {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 console.log("🚀 腳本開始執行！嘗試綁定全域函數...");
 
@@ -1232,6 +1232,39 @@ function closeAlertModal() {
 // ==========================================
 // 模組八：系統交卷傳輸 (已串接 Firebase)
 // ==========================================
+// ==========================================
+// 🏛️ 暑期競標：交卷時自動入帳 pow(理論總分, 4) 點
+// 用固定的 transaction doc ID ('theory_test_1') 讓這筆入帳天生具備冪等性，
+// 就算學生清掉 localStorage 後重新交卷，也不會被重複入帳灌水。
+// ==========================================
+async function creditAuctionWallet(uid, totalScore) {
+    try {
+        const walletRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', uid, 'wallet', 'summer_auction');
+        const txnRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', uid, 'wallet', 'summer_auction', 'transactions', 'theory_test_1');
+
+        await runTransaction(db, async (transaction) => {
+            const txnSnap = await transaction.get(txnRef);
+            if (txnSnap.exists()) return;
+
+            const walletSnap = await transaction.get(walletRef);
+            const currentBalance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
+            const amount = Math.pow(totalScore, 4);
+            const newBalance = currentBalance + amount;
+            const timestamp = new Date().toISOString();
+
+            transaction.set(walletRef, { balance: newBalance }, { merge: true });
+            transaction.set(txnRef, {
+                label: 'Theorical Exam',
+                amount: amount,
+                balanceAfter: newBalance,
+                timestamp: timestamp
+            });
+        });
+    } catch (e) {
+        console.error("競標點數入帳失敗:", e);
+    }
+}
+
 async function submitExam() {
     const btn = document.getElementById('submit_btn');
     const statusMsg = document.getElementById('status_message');
@@ -1333,6 +1366,9 @@ async function submitExam() {
             submitTime: new Date().toISOString(),  // 交卷時間
             studentName: window.currentStudentName || "未知學生" // 學生名稱
         }, { merge: true });
+
+        // 交卷成功後，將本次理論總分自動兌換為競標點數存入帳戶
+        await creditAuctionWallet(window.currentStudentId, totalScore);
 
         // 上傳成功後的畫面處理
         localStorage.setItem('exam_submitted_' + window.currentStudentId, 'true');
