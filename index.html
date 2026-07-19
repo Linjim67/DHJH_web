@@ -213,51 +213,51 @@
             sidebar.classList.toggle('-translate-x-full');
         });
 
-            function getHomeHTML() {
-                return `
-                <!DOCTYPE html>
-                <html><head>
-                    <script src="https://cdn.tailwindcss.com"><\/script>
-                    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-                </head>
-                <body class="p-8 bg-white text-gray-800 font-sans m-0">
-                    <h1 class="text-3xl font-bold mb-2">歡迎來到暑期化學學習平台 👋</h1>
-                    <p class="text-gray-500 mb-8">請從左側選單選擇您要進入的子系統。所有子系統皆為獨立運行。</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- 最新公告區塊 -->
-                        <div class="p-6 bg-blue-50 rounded-[24px] border border-blue-100 flex flex-col">
-                            <div class="flex items-center gap-2 mb-4">
-                                <span class="material-symbols-outlined text-blue-600" style="font-size: 28px;">campaign</span>
-                                <h3 class="text-lg font-bold text-blue-900">最新公告</h3>
-                            </div>
-                            
-                            <ul class="space-y-4">
-                                <!-- 公告項目 1 -->
-                                <li class="flex gap-3 items-start">
-                                    <span class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-1 rounded-md shrink-0 font-mono">07/19</span>
-                                    <span class="text-blue-800 text-sm mt-0.5 leading-relaxed">修復成績單特殊題號對接問題，並新增教師專屬成績結算中心。</span>
-                                </li>
-                                <!-- 公告項目 2 -->
-                                <li class="flex gap-3 items-start">
-                                    <span class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-1 rounded-md shrink-0 font-mono">07/18</span>
-                                    <span class="text-blue-800 text-sm mt-0.5 leading-relaxed">系統已全面升級為模組化架構！現在全面支援 Google 帳號一鍵登入，作答更安全。</span>
-                                </li>
-                            </ul>
+        function getHomeHTML() {
+            return `
+            <!DOCTYPE html>
+            <html><head>
+                <script src="https://cdn.tailwindcss.com"><\/script>
+                <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+            </head>
+            <body class="p-8 bg-white text-gray-800 font-sans m-0">
+                <h1 class="text-3xl font-bold mb-2">歡迎來到暑期化學學習平台 👋</h1>
+                <p class="text-gray-500 mb-8">請從左側選單選擇您要進入的子系統。所有子系統皆為獨立運行。</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 最新公告區塊 -->
+                    <div class="p-6 bg-blue-50 rounded-[24px] border border-blue-100 flex flex-col">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="material-symbols-outlined text-blue-600" style="font-size: 28px;">campaign</span>
+                            <h3 class="text-lg font-bold text-blue-900">最新公告</h3>
                         </div>
                         
-                        <!-- 點數系統區塊 -->
-                        <div class="p-6 bg-green-50 rounded-[24px] border border-green-100 flex flex-col">
-                            <div class="flex items-center gap-2 mb-4">
-                                <span class="material-symbols-outlined text-green-600" style="font-size: 28px;">account_balance_wallet</span>
-                                <h3 class="text-lg font-bold text-green-900">暑期課程錄影 (開發中)</h3>
-                            </div>
-                            <p class="text-green-700 text-sm mt-1 leading-relaxed">每天的錄影會在之後上傳。</p>
-                        </div>
+                        <ul class="space-y-4">
+                            <!-- 公告項目 1 -->
+                            <li class="flex gap-3 items-start">
+                                <span class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-1 rounded-md shrink-0 font-mono">07/19</span>
+                                <span class="text-blue-800 text-sm mt-0.5 leading-relaxed">修復成績單特殊題號對接問題，並新增教師專屬成績結算中心。</span>
+                            </li>
+                            <!-- 公告項目 2 -->
+                            <li class="flex gap-3 items-start">
+                                <span class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-1 rounded-md shrink-0 font-mono">07/18</span>
+                                <span class="text-blue-800 text-sm mt-0.5 leading-relaxed">系統已全面升級為模組化架構！現在全面支援 Google 帳號一鍵登入，作答更安全。</span>
+                            </li>
+                        </ul>
                     </div>
-                </body></html>
-            `;
-            }
+                    
+                    <!-- 點數系統區塊 -->
+                    <div class="p-6 bg-green-50 rounded-[24px] border border-green-100 flex flex-col">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="material-symbols-outlined text-green-600" style="font-size: 28px;">account_balance_wallet</span>
+                            <h3 class="text-lg font-bold text-green-900">暑期課程錄影 (開發中)</h3>
+                        </div>
+                        <p class="text-green-700 text-sm mt-1 leading-relaxed">每天的錄影會在之後上傳。</p>
+                    </div>
+                </div>
+            </body></html>
+        `;
+        }
 
         // 側邊欄點擊事件 (加入權限阻擋)
         sidebarItems.forEach(item => {
