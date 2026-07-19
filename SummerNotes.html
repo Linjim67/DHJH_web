@@ -110,12 +110,12 @@
     <script>
         // 講義清單與對應的檔名 (請確保實體檔案放在專案根目錄的 assets/ 底下)
         const pdfFiles = [
-            { title: "第一日理論", filename: "Exercise-D1.pdf" },
-            { title: "第二日理論", filename: "Exercise-D2.pdf" },
-            { title: "第四日理論", filename: "Exercise-D4.pdf" },
-            { title: "第七日理論", filename: "Exercise-D7.pdf" },
-            { title: "課後練習題", filename: "Exercise-all.pdf" },
-            { title: "實驗理論題", filename: "exercise-exp.pdf" }
+            { title: "第一日理論", filename: "Exercise-D1.pdf", edition: "2026 年版" },
+            { title: "第二日理論", filename: "Exercise-D2.pdf", edition: "2026 年版" },
+            { title: "第四日理論", filename: "Exercise-D4.pdf", edition: "2026 年版" },
+            { title: "第七日理論", filename: "Exercise-D7.pdf", edition: "2026 年版" },
+            { title: "課後練習題", filename: "Exercise-all.pdf", edition: "2026 年版" },
+            { title: "實驗理論題", filename: "exercise-exp.pdf", edition: "2026 年版" }
         ];
 
         const container = document.getElementById('cards-container');
@@ -160,11 +160,13 @@
                 card.className = "bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group flex flex-col justify-between";
                 card.innerHTML = `
                     <div>
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">${item.title}</h3>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-1">${item.title}</h3>
-                        <p class="text-sm font-mono text-gray-400">${item.filename}</p>
+                        <p class="text-sm font-mono text-gray-400">${item.edition}</p>
                     </div>
                     <div class="mt-6 flex items-center text-blue-600 font-semibold text-sm">
                         開啟閱讀器 <span class="material-symbols-outlined ml-1 text-lg group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
@@ -176,11 +178,13 @@
                 card.className = "bg-gray-50 p-6 rounded-2xl border border-gray-200 shadow-inner flex flex-col justify-between opacity-80 cursor-not-allowed";
                 card.innerHTML = `
                     <div>
-                        <div class="w-12 h-12 bg-gray-200 text-gray-400 rounded-xl flex items-center justify-center mb-4">
-                            <span class="material-symbols-outlined text-2xl">construction</span>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-12 h-12 bg-gray-200 text-gray-400 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-2xl">construction</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-500">${item.title}</h3>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-500 mb-1">${item.title}</h3>
-                        <p class="text-sm font-mono text-gray-400">${item.filename}</p>
+                        <p class="text-sm font-mono text-gray-400">${item.edition}</p>
                     </div>
                     <div class="mt-6 inline-flex items-center w-max px-3 py-1 bg-yellow-50 text-yellow-700 font-bold text-xs rounded-lg border border-yellow-200">
                         🚧 仍在建造中
