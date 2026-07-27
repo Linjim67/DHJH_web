@@ -93,23 +93,10 @@
 
     <div id="transcript-content" class="hidden max-w-5xl mx-auto space-y-6">
         <header
-            class="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+            class="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 opacity-50"></div>
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800 tracking-tight">暑期化學營成績單</h1>
-                <p id="student-name" class="text-gray-500 mt-1 font-medium">學生：載入中...</p>
-            </div>
-            <div class="flex items-center gap-6">
-                <div class="text-center">
-                    <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">實作分數</div>
-                    <div id="practical-score" class="text-3xl font-bold text-emerald-600">--</div>
-                </div>
-                <div class="w-px h-10 bg-gray-200"></div>
-                <div class="text-center">
-                    <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
-                    <div id="total-students" class="text-3xl font-bold text-blue-600">0</div>
-                </div>
-            </div>
+            <h1 class="text-3xl font-bold text-gray-800 tracking-tight">暑期化學營成績單</h1>
+            <p id="student-name" class="text-gray-500 mt-1 font-medium">學生：載入中...</p>
         </header>
 
         <div class="flex flex-wrap items-center justify-end gap-4 text-xs font-medium text-gray-500 px-2">
@@ -125,12 +112,40 @@
         </div>
 
         <section>
-            <h2 class="text-lg font-bold text-gray-700 mb-3 px-1">實作測驗</h2>
+            <div
+                class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h2 class="text-lg font-bold text-gray-700">實作測驗</h2>
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">實作分數</div>
+                        <div id="practical-score" class="text-3xl font-bold text-emerald-600">--</div>
+                    </div>
+                    <div class="w-px h-10 bg-gray-200"></div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
+                        <div id="practical-total-students" class="text-3xl font-bold text-blue-600">0</div>
+                    </div>
+                </div>
+            </div>
             <main id="practical-container" class="space-y-4"></main>
         </section>
 
         <section>
-            <h2 class="text-lg font-bold text-gray-700 mb-3 px-1">理論測驗</h2>
+            <div
+                class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h2 class="text-lg font-bold text-gray-700">理論測驗</h2>
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
+                        <div id="theory-score" class="text-3xl font-bold text-emerald-600">--</div>
+                    </div>
+                    <div class="w-px h-10 bg-gray-200"></div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
+                        <div id="theory-total-students" class="text-3xl font-bold text-blue-600">0</div>
+                    </div>
+                </div>
+            </div>
             <main id="theory-container" class="space-y-4"></main>
         </section>
     </div>
@@ -346,11 +361,10 @@
                     }
 
                     // ---- 實作測驗 ----
-                    let practicalTotalScore = '--';
                     if (practicalSnap.exists()) {
                         const rawPracticalData = practicalSnap.data();
                         const practicalScores = rawPracticalData.practicalScores || {};
-                        practicalTotalScore = rawPracticalData.totalScore !== undefined ? rawPracticalData.totalScore : 0;
+                        const practicalTotalScore = rawPracticalData.totalScore !== undefined ? rawPracticalData.totalScore : 0;
 
                         const practicalGroupScores = {};
                         Object.entries(PRACTICAL_GROUPS).forEach(([groupId, groupInfo]) => {
@@ -358,6 +372,8 @@
                         });
 
                         const practicalPublicData = await loadPublicStats('practical_test_1_stats', PRACTICAL_GROUPS);
+                        document.getElementById('practical-score').innerText = practicalTotalScore;
+                        document.getElementById('practical-total-students').innerText = practicalPublicData.totalStudents || 0;
 
                         renderQuestionGroupSection('practical-container', PRACTICAL_GROUPS, practicalScores, practicalGroupScores, practicalPublicData, {
                             getQuestionMax: getPracticalQuestionMax,
@@ -379,12 +395,15 @@
                         });
 
                         const groupScores = {};
+                        let theoryTotalScore = 0;
                         Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
                             groupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (theoryScores[qId] || 0), 0);
+                            theoryTotalScore += groupScores[groupId];
                         });
 
                         const theoryPublicData = await loadPublicStats('theory_test_1_stats', QUESTION_GROUPS);
-                        document.getElementById('total-students').innerText = theoryPublicData.totalStudents || 0;
+                        document.getElementById('theory-score').innerText = theoryTotalScore;
+                        document.getElementById('theory-total-students').innerText = theoryPublicData.totalStudents || 0;
 
                         renderQuestionGroupSection('theory-container', QUESTION_GROUPS, theoryScores, groupScores, theoryPublicData, {
                             getQuestionMax: () => 5,
@@ -393,8 +412,6 @@
                     } else {
                         document.getElementById('theory-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有理論測驗成績</p>`;
                     }
-
-                    document.getElementById('practical-score').innerText = practicalTotalScore;
 
                     document.getElementById('loading').classList.add('hidden');
                     document.getElementById('transcript-content').classList.remove('hidden');
