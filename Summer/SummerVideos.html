@@ -59,7 +59,7 @@
         // ==========================================
         const videoData = [
             {
-                dayTitle: "第一日課程",
+                dayTitle: "第一日課程(當時未錄影，之後會補錄)",
                 type: "T",
                 videos: [
                     { title: "主題1：反應傾向", url: "#" },
@@ -72,7 +72,7 @@
                 type: "T",
                 videos: [
                     { title: "主題6：酸鹼定義", url: "#" },
-                    { title: ["主題6：酸鹼定義", "主題7：酸鹼反應"], url: "#" },
+                    { title: ["主題6：酸鹼定義", "主題7：酸鹼反應"], url: "https://youtu.be/aA7yVC5UjIU" },
                     { title: ["主題9：濃度標定", "主題10：指示劑"], url: "#" }
                 ]
             },
@@ -107,8 +107,8 @@
                 dayTitle: "第六日課程",
                 type: "T",
                 videos: [
-                    { title: ["主題21：理想氣體", "主題22：氣體反應"], url: "#" },
-                    { title: ["主題23：沉澱表", "主題24：速率定律式"], url: "#" },
+                    { title: ["主題21：理想氣體", "主題22：氣體反應", "忘記掛麥克風，未來會補錄"], url: "https://youtu.be/ylq0mVpxdAQ" },
+                    { title: ["主題23：沉澱表", "主題24：速率定律式"], url: "https://youtu.be/zxH5F9m6EUc" },
                     { title: "主題25：基元反應", url: "#" }
                 ]
             },
@@ -130,6 +130,15 @@
                     { title: "主題27, 28、實驗縮時", url: "#" }
                 ]
             },
+            /* {
+                dayTitle: "實作測驗解析",
+                type: "P",
+                videos: [
+                    { title: "第一大題", url: "#" },
+                    { title: "第二大題", url: "#" },
+                ]
+            },
+            */
             {
                 dayTitle: "其餘章節",
                 type: "T",
@@ -195,10 +204,8 @@
                 // 判斷標題是單一字串，還是包含多個章節的陣列
                 let titleHtml = '';
                 if (Array.isArray(video.title)) {
-                    // 如果是陣列，就把每個章節換行顯示，並加上符合主題的小圓點
                     titleHtml = video.title.map(t => `
                             <div class="text-sm font-bold text-gray-800 leading-snug flex items-start gap-1.5">
-                                <span class="${theme.iconText} mt-[3px] text-[10px]">●</span>
                                 <span>${t}</span>
                             </div>
                         `).join('');
