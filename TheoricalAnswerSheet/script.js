@@ -84,7 +84,7 @@ window.dropToPool = dropToPool;
 window.dropToZone = dropToZone;
 window.dropToTrash = dropToTrash;
 
-console.log("✅ 全域函數綁定完成！");
+console.log("全域函數綁定完成！");
 
 
 const firebaseConfig = {
@@ -166,9 +166,9 @@ function unlockExam(uid, displayName) {
 // 🚨 測驗時間與解鎖設定
 // ==========================================
 const EXAM_CONFIG = {
-    startTime: "00:01",     // 14:20
-    endTime: "23:59",       // 16:00
-    durationMinutes: 1440,   // 100
+    startTime: "14:20",     // 14:20
+    endTime: "16:00",       // 16:00
+    durationMinutes: 100,   // 100
     enableTimeCheck: true   // true 
 };
 
