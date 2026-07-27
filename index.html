@@ -84,12 +84,10 @@
             <div class="sidebar-item" data-page="exam-paper" data-title="暑期課程錄影" data-show="false">
                 <span class="material-symbols-outlined">description</span> 暑期課程錄影
             </div>
-            <!-- 
             <div class="sidebar-item" data-page="exam-answer" data-title="暑期理論作答"
                 data-src="TheoricalAnswerSheet/index.html" data-show="true">
                 <span class="material-symbols-outlined">edit_square</span> 暑期理論作答
             </div>
-            -->
             <div class="sidebar-item" data-page="transcript" data-title="暑期成績單" data-src="SummerTranscript.html" data-show="false">
                 <span class="material-symbols-outlined">analytics</span> 暑期成績單
             </div>
@@ -505,6 +503,23 @@
                 }
             }
         });
+
+        if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        // 1. 執行 Firebase 登出
+                        await signOut(auth);
+
+                        // 2. 登出成功後，強制重新整理整個網頁
+                        // 這能保證 Iframe 裡面的考卷畫面也被清空，給予最明確的「已登出」視覺回饋
+                        window.location.reload();
+
+                    } catch (error) {
+                        console.error("登出發生錯誤:", error);
+                        alert("登出失敗，請稍後再試！");
+                    }
+                });
+            }
 
         // 接收子系統 (Iframe) 傳來的交卷完畢訊息
         window.addEventListener('message', (event) => {
