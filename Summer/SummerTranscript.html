@@ -124,7 +124,15 @@
             </div>
         </div>
 
-        <main id="theory-container" class="space-y-4"></main>
+        <section>
+            <h2 class="text-lg font-bold text-gray-700 mb-3 px-1">實作測驗</h2>
+            <main id="practical-container" class="space-y-4"></main>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-bold text-gray-700 mb-3 px-1">理論測驗</h2>
+            <main id="theory-container" class="space-y-4"></main>
+        </section>
     </div>
 
     <script type="module">
@@ -162,8 +170,8 @@
             `;
         }
 
-        function createVerticalBoxPlot(min, max, lq, median, uq, score) {
-            const mapY = (val) => 100 - ((val / 5) * 100);
+        function createVerticalBoxPlot(min, max, lq, median, uq, score, maxScore = 5) {
+            const mapY = (val) => 100 - ((val / maxScore) * 100);
             const yMin = mapY(min), yMax = mapY(max), yLq = mapY(lq), yUq = mapY(uq), yMed = mapY(median), yScore = mapY(score);
             return `
                 <svg width="40" height="100" viewBox="0 0 40 100" class="overflow-visible drop-shadow-sm">
@@ -179,19 +187,22 @@
             `;
         }
 
-        function renderTranscript(studentData, publicData) {
-            document.getElementById('total-students').innerText = publicData.totalStudents;
-            document.getElementById('practical-score').innerText = studentData.practicalScore || 0;
+        function renderQuestionGroupSection(containerId, groups, studentScores, groupScores, publicData, options = {}) {
+            const getQuestionMax = options.getQuestionMax || (() => 5);
+            const getDisplayTitle = options.getDisplayTitle || (qId => qId);
 
-            const container = document.getElementById('theory-container');
+            const container = document.getElementById(containerId);
             container.innerHTML = '';
 
             // 確保按照大題順序渲染
-            Object.keys(QUESTION_GROUPS).forEach(groupId => {
-                const groupStats = publicData.groups[groupId];
-                if (!groupStats) return;
+            Object.keys(groups).forEach(groupId => {
+                const groupInfo = groups[groupId];
+                const groupStats = (publicData.groups && publicData.groups[groupId]) || {
+                    title: groupInfo.title, maxScore: groupInfo.maxScore,
+                    mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0
+                };
 
-                const myGroupScore = studentData.groupScores[groupId] || 0;
+                const myGroupScore = groupScores[groupId] || 0;
 
                 const groupEl = document.createElement('section');
                 groupEl.className = "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden";
@@ -229,25 +240,21 @@
 
                 let questionsHtml = '<div class="accordion-inner"><div class="p-6 flex flex-wrap gap-4 md:gap-6 justify-center md:justify-start">';
 
-                QUESTION_GROUPS[groupId].questions.forEach(qId => {
+                groupInfo.questions.forEach(qId => {
                     // 若無統計資料，給予預設值，確保學生的分數一定能畫出來
-                    const qStats = publicData.questions[qId] || { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0 };
-                    const myScore = studentData.theoryScores[qId] !== undefined ? studentData.theoryScores[qId] : 0;
-
-                    let displayTitle = qId;
-                    if (qId === '231') displayTitle = '23-1';
-                    if (qId === '232') displayTitle = '23-2';
-                    if (qId === '301') displayTitle = '30-1';
-                    if (qId === '302') displayTitle = '30-2';
+                    const qStats = (publicData.questions && publicData.questions[qId]) || { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0 };
+                    const myScore = studentScores[qId] !== undefined ? studentScores[qId] : 0;
+                    const qMax = getQuestionMax(qId);
+                    const displayTitle = getDisplayTitle(qId);
 
                     questionsHtml += `
                         <div class="flex flex-col items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm w-[72px] hover:shadow-md transition-shadow">
                             <div class="text-sm font-bold text-gray-700 mb-1">${displayTitle}</div>
                             <div class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded mb-3 border border-blue-100">
-                                ${myScore}<span class="text-gray-400">/5</span>
+                                ${myScore}<span class="text-gray-400">/${qMax}</span>
                             </div>
                             <div class="relative w-10 h-[100px]">
-                                ${createVerticalBoxPlot(qStats.low, qStats.high, qStats.lq, qStats.median, qStats.uq, myScore)}
+                                ${createVerticalBoxPlot(qStats.low, qStats.high, qStats.lq, qStats.median, qStats.uq, myScore, qMax)}
                             </div>
                         </div>
                     `;
@@ -265,12 +272,9 @@
                 groupEl.appendChild(contentEl);
                 container.appendChild(groupEl);
             });
-
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('transcript-content').classList.remove('hidden');
         }
 
-        // 大題結構與純數字題號
+        // 理論測驗：大題結構與純數字題號
         const QUESTION_GROUPS = {
             "Part1": { title: "第一大題", questions: ["1", "2", "3", "4", "5"], maxScore: 25 },
             "Part2": { title: "第二大題", questions: ["6", "7"], maxScore: 10 },
@@ -278,6 +282,20 @@
             "Part4": { title: "第四大題", questions: ["11", "12", "13", "14", "15", "16", "17", "18", "19", "20"], maxScore: 50 },
             "Part5": { title: "第五大題", questions: ["21", "22", "231", "232", "24", "25", "26", "27", "28", "29", "301", "302"], maxScore: 60 }
         };
+        const THEORY_DISPLAY_TITLES = { '231': '23-1', '232': '23-2', '301': '30-1', '302': '30-2' };
+        const getTheoryDisplayTitle = qId => THEORY_DISPLAY_TITLES[qId] || qId;
+
+        // 實作測驗：題本結構與各題滿分
+        const PRACTICAL_MAX_SCORES = {
+            p1: 10, p2: 10, p3: 5, p4: 15, p5: 40, p6: 15, p7: 5,
+            p8: 5, p9: 10, p10: 30, p11: 15
+        };
+        const PRACTICAL_GROUPS = {
+            "Set1": { title: "第一份題本", questions: ["p1", "p2", "p3", "p4", "p5", "p6", "p7"], maxScore: 100 },
+            "Set2": { title: "第二份題本", questions: ["p8", "p9", "p10", "p11"], maxScore: 60 }
+        };
+        const getPracticalDisplayTitle = qId => qId.toUpperCase();
+        const getPracticalQuestionMax = qId => PRACTICAL_MAX_SCORES[qId] || 0;
 
         if (!auth) {
             document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Firebase 初始化失敗。</p>`;
@@ -297,57 +315,89 @@
                 try {
                     document.getElementById('student-name').innerText = `學生：${user.displayName || user.email}`;
 
-                    const myResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
-                    const myResultSnap = await getDoc(myResultRef);
-
-                    if (!myResultSnap.exists()) {
-                        document.getElementById('loading').innerHTML = `<div class="text-center p-6"><p class="text-gray-600 font-bold mb-1">您尚未交卷</p></div>`;
-                        return;
-                    }
-
-                    const rawStudentData = myResultSnap.data();
-                    const rawTheoryScores = rawStudentData.theoryScores || {};
-
-                    const theoryScores = {};
-                    Object.keys(rawTheoryScores).forEach(key => {
-                        const cleanKey = key.replace(/^q/i, '');
-                        theoryScores[cleanKey] = rawTheoryScores[key];
-                    });
-
-                    let theoryTotalScore = 0;
-                    const groupScores = {};
-                    Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
-                        groupScores[groupId] = groupInfo.questions.reduce((sum, qId) => {
-                            const score = theoryScores[qId] || 0;
-                            theoryTotalScore += score;
-                            return sum + score;
-                        }, 0);
-                    });
-
-                    const studentData = {
-                        practicalScore: rawStudentData.practicalScore || '--',
-                        theoryScores: theoryScores,
-                        groupScores: groupScores
-                    };
-
-                    const publicStatsRef = doc(db, 'public_data', 'theory_test_1_stats');
-                    const publicStatsSnap = await getDoc(publicStatsRef);
-
-                    let publicData;
-                    if (publicStatsSnap.exists()) {
-                        publicData = publicStatsSnap.data();
-                    } else {
-                        publicData = { totalStudents: 0, groups: {}, questions: {} };
-                        Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
+                    function fallbackPublicData(groups) {
+                        const publicData = { totalStudents: 0, groups: {}, questions: {} };
+                        Object.entries(groups).forEach(([groupId, groupInfo]) => {
                             publicData.groups[groupId] = {
                                 title: groupInfo.title, maxScore: groupInfo.maxScore,
                                 mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0,
                                 questions: groupInfo.questions
                             };
                         });
+                        return publicData;
                     }
 
-                    renderTranscript(studentData, publicData);
+                    async function loadPublicStats(docId, groups) {
+                        const snap = await getDoc(doc(db, 'public_data', docId));
+                        return snap.exists() ? snap.data() : fallbackPublicData(groups);
+                    }
+
+                    const theoryResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
+                    const practicalResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'practical_test_1');
+
+                    const [theorySnap, practicalSnap] = await Promise.all([
+                        getDoc(theoryResultRef),
+                        getDoc(practicalResultRef)
+                    ]);
+
+                    if (!theorySnap.exists() && !practicalSnap.exists()) {
+                        document.getElementById('loading').innerHTML = `<div class="text-center p-6"><p class="text-gray-600 font-bold mb-1">您尚未交卷</p></div>`;
+                        return;
+                    }
+
+                    // ---- 實作測驗 ----
+                    let practicalTotalScore = '--';
+                    if (practicalSnap.exists()) {
+                        const rawPracticalData = practicalSnap.data();
+                        const practicalScores = rawPracticalData.practicalScores || {};
+                        practicalTotalScore = rawPracticalData.totalScore !== undefined ? rawPracticalData.totalScore : 0;
+
+                        const practicalGroupScores = {};
+                        Object.entries(PRACTICAL_GROUPS).forEach(([groupId, groupInfo]) => {
+                            practicalGroupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (practicalScores[qId] || 0), 0);
+                        });
+
+                        const practicalPublicData = await loadPublicStats('practical_test_1_stats', PRACTICAL_GROUPS);
+
+                        renderQuestionGroupSection('practical-container', PRACTICAL_GROUPS, practicalScores, practicalGroupScores, practicalPublicData, {
+                            getQuestionMax: getPracticalQuestionMax,
+                            getDisplayTitle: getPracticalDisplayTitle
+                        });
+                    } else {
+                        document.getElementById('practical-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有實作測驗成績</p>`;
+                    }
+
+                    // ---- 理論測驗 ----
+                    if (theorySnap.exists()) {
+                        const rawStudentData = theorySnap.data();
+                        const rawTheoryScores = rawStudentData.theoryScores || {};
+
+                        const theoryScores = {};
+                        Object.keys(rawTheoryScores).forEach(key => {
+                            const cleanKey = key.replace(/^q/i, '');
+                            theoryScores[cleanKey] = rawTheoryScores[key];
+                        });
+
+                        const groupScores = {};
+                        Object.entries(QUESTION_GROUPS).forEach(([groupId, groupInfo]) => {
+                            groupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (theoryScores[qId] || 0), 0);
+                        });
+
+                        const theoryPublicData = await loadPublicStats('theory_test_1_stats', QUESTION_GROUPS);
+                        document.getElementById('total-students').innerText = theoryPublicData.totalStudents || 0;
+
+                        renderQuestionGroupSection('theory-container', QUESTION_GROUPS, theoryScores, groupScores, theoryPublicData, {
+                            getQuestionMax: () => 5,
+                            getDisplayTitle: getTheoryDisplayTitle
+                        });
+                    } else {
+                        document.getElementById('theory-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有理論測驗成績</p>`;
+                    }
+
+                    document.getElementById('practical-score').innerText = practicalTotalScore;
+
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('transcript-content').classList.remove('hidden');
 
                 } catch (e) {
                     console.error("資料讀取失敗:", e);
