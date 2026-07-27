@@ -461,6 +461,12 @@
                     return;
                 }
 
+                const userRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid);
+                await setDoc(userRef, {
+                    email: user.email.toLowerCase(),
+                    name: user.displayName || user.email.split('@')[0]
+                }, { merge: true }); // 使用 merge 保留原有資料
+
                 loginBtn.classList.add('hidden');
                 userProfile.classList.remove('hidden');
 
