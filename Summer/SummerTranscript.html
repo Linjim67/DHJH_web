@@ -148,6 +148,25 @@
             </div>
             <main id="theory-container" class="space-y-4"></main>
         </section>
+
+        <section>
+            <div
+                class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h2 class="text-lg font-bold text-gray-700">第二次理論測驗</h2>
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
+                        <div id="theory2-score" class="text-3xl font-bold text-emerald-600">--</div>
+                    </div>
+                    <div class="w-px h-10 bg-gray-200"></div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
+                        <div id="theory2-total-students" class="text-3xl font-bold text-blue-600">0</div>
+                    </div>
+                </div>
+            </div>
+            <main id="theory2-container" class="space-y-4"></main>
+        </section>
     </div>
 
     <script type="module">
@@ -312,6 +331,12 @@
         const getPracticalDisplayTitle = qId => qId.toUpperCase();
         const getPracticalQuestionMax = qId => PRACTICAL_MAX_SCORES[qId] || 0;
 
+        // 第二次理論測驗：10 題填充題，每題 8 分，滿分 80
+        const THEORY2_GROUPS = {
+            "Part1": { title: "第二次理論測驗", questions: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], maxScore: 80 }
+        };
+        const getTheory2QuestionMax = () => 8;
+
         if (!auth) {
             document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Firebase 初始化失敗。</p>`;
         } else {
@@ -349,13 +374,15 @@
 
                     const theoryResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
                     const practicalResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'practical_test_1');
+                    const theory2ResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_2');
 
-                    const [theorySnap, practicalSnap] = await Promise.all([
+                    const [theorySnap, practicalSnap, theory2Snap] = await Promise.all([
                         getDoc(theoryResultRef),
-                        getDoc(practicalResultRef)
+                        getDoc(practicalResultRef),
+                        getDoc(theory2ResultRef)
                     ]);
 
-                    if (!theorySnap.exists() && !practicalSnap.exists()) {
+                    if (!theorySnap.exists() && !practicalSnap.exists() && !theory2Snap.exists()) {
                         document.getElementById('loading').innerHTML = `<div class="text-center p-6"><p class="text-gray-600 font-bold mb-1">您尚未交卷</p></div>`;
                         return;
                     }
@@ -411,6 +438,38 @@
                         });
                     } else {
                         document.getElementById('theory-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有理論測驗成績</p>`;
+                    }
+
+                    // ---- 第二次理論測驗 ----
+                    if (theory2Snap.exists()) {
+                        const rawTheory2Data = theory2Snap.data();
+                        const rawTheory2Scores = rawTheory2Data.theory2Scores || {};
+
+                        const theory2Scores = {};
+                        Object.keys(rawTheory2Scores).forEach(key => {
+                            const cleanKey = key.replace(/^q/i, '');
+                            theory2Scores[cleanKey] = rawTheory2Scores[key];
+                        });
+
+                        const theory2GroupScores = {};
+                        Object.entries(THEORY2_GROUPS).forEach(([groupId, groupInfo]) => {
+                            theory2GroupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (theory2Scores[qId] || 0), 0);
+                        });
+
+                        const theory2TotalScore = rawTheory2Data.score !== undefined
+                            ? rawTheory2Data.score
+                            : Object.values(theory2GroupScores).reduce((sum, v) => sum + v, 0);
+
+                        const theory2PublicData = await loadPublicStats('theory_test_2_stats', THEORY2_GROUPS);
+                        document.getElementById('theory2-score').innerText = Math.round(theory2TotalScore * 100) / 100;
+                        document.getElementById('theory2-total-students').innerText = theory2PublicData.totalStudents || 0;
+
+                        renderQuestionGroupSection('theory2-container', THEORY2_GROUPS, theory2Scores, theory2GroupScores, theory2PublicData, {
+                            getQuestionMax: getTheory2QuestionMax,
+                            getDisplayTitle: qId => qId
+                        });
+                    } else {
+                        document.getElementById('theory2-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有第二次理論測驗成績</p>`;
                     }
 
                     document.getElementById('loading').classList.add('hidden');

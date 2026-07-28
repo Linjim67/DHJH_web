@@ -88,6 +88,10 @@
                 data-src="TheoricalAnswerSheet/index.html" data-show="true">
                 <span class="material-symbols-outlined">edit_square</span> 暑期理論作答
             </div>
+            <div class="sidebar-item" data-page="exam-answer-2" data-title="暑期理論作答（第二次）"
+                data-src="TheoricalAnswerSheet2/index.html" data-show="false">
+                <span class="material-symbols-outlined">edit_square</span> 暑期理論作答（第二次）
+            </div>
             <div class="sidebar-item" data-page="transcript" data-title="暑期成績單" data-src="Summer/SummerTranscript.html" data-show="false">
                 <span class="material-symbols-outlined">analytics</span> 暑期成績單
             </div>
@@ -376,12 +380,13 @@
         const navNotes = document.querySelector('[data-page="notes"]');
         const navExamPaper = document.querySelector('[data-page="exam-paper"]');
         const navExam = document.querySelector('[data-page="exam-answer"]');
+        const navExam2 = document.querySelector('[data-page="exam-answer-2"]');
         const navTranscript = document.querySelector('[data-page="transcript"]');
         const navAuction = document.querySelector('[data-page="auction"]');
         const navSolution = document.querySelector('[data-page="exam-solution"]');
 
         // 將需要權限的按鈕打包，方便統一隱藏
-        const restrictedNavs = [navNotes, navExamPaper, navExam, navTranscript, navAuction, navSolution];
+        const restrictedNavs = [navNotes, navExamPaper, navExam, navExam2, navTranscript, navAuction, navSolution];
 
         // ==========================================
         // 1. 執行 Google 登入 (改回彈出視窗 Popup)
@@ -479,20 +484,30 @@
                 if (navExamPaper) navExamPaper.style.display = 'flex';
 
                 try {
-                    const resultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
-                    const snap = await getDoc(resultRef);
-                    if (snap.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true') {
-                        // 已交卷：隱藏作答區，【顯示】解析、成績單與競標
-                        if (navExam) navExam.style.display = 'none';
+                    const resultRef1 = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
+                    const resultRef2 = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_2');
+                    const [snap1, snap2] = await Promise.all([getDoc(resultRef1), getDoc(resultRef2)]);
+
+                    const submitted1 = snap1.exists() || localStorage.getItem('exam_submitted_' + user.uid) === 'true';
+                    const submitted2 = snap2.exists() || localStorage.getItem('exam2_submitted_' + user.uid) === 'true';
+
+                    if (navExam) navExam.style.display = 'none';
+                    if (navExam2) navExam2.style.display = 'none';
+                    if (navTranscript) navTranscript.style.display = 'none';
+                    if (navAuction) navAuction.style.display = 'none';
+                    if (navSolution) navSolution.style.display = 'none';
+
+                    if (!submitted1) {
+                        // 第一次理論測驗尚未交卷：顯示第一次作答區
+                        if (navExam) navExam.style.display = 'flex';
+                    } else if (!submitted2) {
+                        // 第一次已交卷，第二次尚未交卷：顯示第二次作答區
+                        if (navExam2) navExam2.style.display = 'flex';
+                    } else {
+                        // 兩次理論測驗皆已交卷：顯示解析、成績單與競標
                         if (navTranscript) navTranscript.style.display = 'flex';
                         if (navAuction) navAuction.style.display = 'flex';
                         if (navSolution) navSolution.style.display = 'flex';
-                    } else {
-                        // 未交卷：顯示作答區，【隱藏】解析、成績單與競標
-                        if (navExam) navExam.style.display = 'flex';
-                        if (navTranscript) navTranscript.style.display = 'none';
-                        if (navAuction) navAuction.style.display = 'none';
-                        if (navSolution) navSolution.style.display = 'none';
                     }
                 } catch (e) {
                     console.error("無法檢查交卷狀態:", e);
@@ -534,14 +549,21 @@
         // 接收子系統 (Iframe) 傳來的交卷完畢訊息
         window.addEventListener('message', (event) => {
             if (event.data && event.data.action === 'exam_submitted') {
-                // 1. 隱藏作答區
+                // 第一次理論測驗交卷完畢：隱藏第一次作答區，顯示第二次作答區
                 if (navExam) navExam.style.display = 'none';
+                if (navExam2) navExam2.style.display = 'flex';
+
+                // 自動點擊「第二次理論作答」按鈕進行無縫跳轉
+                if (navExam2) navExam2.click();
+            } else if (event.data && event.data.action === 'exam2_submitted') {
+                // 第二次理論測驗交卷完畢：隱藏第二次作答區，顯示解析、成績單與競標
+                if (navExam2) navExam2.style.display = 'none';
 
                 if (navTranscript) navTranscript.style.display = 'flex';
                 if (navAuction) navAuction.style.display = 'flex';
                 if (navSolution) navSolution.style.display = 'flex';
 
-                // 3. 自動點擊「成績單」按鈕進行無縫跳轉
+                // 自動點擊「成績單」按鈕進行無縫跳轉
                 if (navTranscript) navTranscript.click();
             }
         });
