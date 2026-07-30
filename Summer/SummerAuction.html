@@ -70,6 +70,16 @@
             </div>
         </header>
 
+        <!-- 等待拍賣開始 -->
+        <section id="waiting-card" class="hidden bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <span class="material-symbols-outlined text-amber-400 text-5xl mb-3">hourglass_top</span>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">競標尚未開始</h2>
+            <p id="waiting-text" class="text-gray-500 text-sm">距離開始還有 --</p>
+        </section>
+
+        <!-- 動態階段內容 -->
+        <section id="phase-section" class="hidden space-y-6"></section>
+
         <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400">receipt_long</span>
@@ -84,7 +94,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import {
+            getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, runTransaction, getDocs
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAZ7cCQlXh8oiNzwnT2LL07KPt5TMaI2d8",
@@ -99,6 +111,26 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        const stateRef = doc(db, 'public_data', 'auction_state');
+
+        // ==========================================
+        // 🚨 拍賣開放時間設定 (與 EXAM_CONFIG 相同風格)
+        // ==========================================
+        const AUCTION_CONFIG = {
+            startTime: "16:40",
+            enableTimeCheck: true
+        };
+
+        const ANTI_SNIPE_MS = 3000;
+
+        let currentUid = null;
+        let currentName = null;
+        let currentBalance = 0;
+        let auctionState = null;
+        let myLastBids = {}; // round2 用：本機記住自己最後一次的出價，判斷領先/被超越
+        let myBasketVote = null; // basket_votes/{uid} 快照資料
+        let basketTotalsCache = { A: 0, B: 0, C: 0 }; // 每 2 秒刷新一次，避免每個 250ms tick 都讀取整個 collection
 
         function formatClock(isoString) {
             const d = new Date(isoString);
@@ -143,7 +175,9 @@
             }
 
             try {
-                document.getElementById('student-name').innerText = `學生：${user.displayName || user.email}`;
+                currentUid = user.uid;
+                currentName = user.displayName || user.email;
+                document.getElementById('student-name').innerText = `學生：${currentName}`;
 
                 const examRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
                 const examSnap = await getDoc(examRef);
@@ -158,18 +192,37 @@
                     return;
                 }
 
+                // 即時監聽自己的錢包餘額與交易紀錄
                 const walletRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'wallet', 'summer_auction');
-                const walletSnap = await getDoc(walletRef);
-                const balance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
-                document.getElementById('wallet-balance').innerText = balance;
+                onSnapshot(walletRef, (snap) => {
+                    currentBalance = snap.exists() ? (snap.data().balance || 0) : 0;
+                    document.getElementById('wallet-balance').innerText = currentBalance;
+                    fullRender(); // 餘額變動可能影響最終階段的躲貓貓小人祝賀訊息
+                });
 
                 const txnQuery = query(
                     collection(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'wallet', 'summer_auction', 'transactions'),
                     orderBy('timestamp', 'asc')
                 );
-                const txnSnap = await getDocs(txnQuery);
-                const transactions = txnSnap.docs.map(d => d.data());
-                renderLedger(transactions);
+                onSnapshot(txnQuery, (snap) => {
+                    renderLedger(snap.docs.map(d => d.data()));
+                });
+
+                // 即時監聽自己的籃子任務投票狀態
+                onSnapshot(doc(db, 'public_data', 'auction_state', 'basket_votes', user.uid), (snap) => {
+                    myBasketVote = snap.exists() ? snap.data() : null;
+                    fullRender();
+                });
+
+                // 即時監聽全體拍賣狀態
+                onSnapshot(stateRef, (snap) => {
+                    auctionState = snap.exists() ? snap.data() : null;
+                    fullRender();
+                });
+
+                tick();
+                setInterval(tick, 250);
+                setInterval(refreshBasketTotals, 2000);
 
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('auction-content').classList.remove('hidden');
@@ -179,6 +232,405 @@
                 document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">資料讀取失敗，請稍後再試。</p>`;
             }
         });
+
+        function auctionUnlockRemainingMs() {
+            if (!AUCTION_CONFIG.enableTimeCheck) return 0;
+            const now = new Date();
+            const [h, m] = AUCTION_CONFIG.startTime.split(':').map(Number);
+            const target = new Date();
+            target.setHours(h, m, 0, 0);
+            return target.getTime() - now.getTime();
+        }
+
+        function fmtRemaining(endsAt) {
+            if (!endsAt) return '--';
+            const ms = Math.max(0, endsAt - Date.now());
+            return (ms / 1000).toFixed(1) + 's';
+        }
+
+        function fmtDuration(ms) {
+            const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return h > 0 ? `${h} 小時 ${m} 分 ${s} 秒` : `${m} 分 ${s} 秒`;
+        }
+
+        // ==========================================
+        // 出價交易邏輯 (round1 / round2 共用)
+        // ==========================================
+        async function submitBid(target, amount) {
+            if (!Number.isFinite(amount) || amount <= 0) { alert('請輸入有效的出價金額'); return; }
+            try {
+                await runTransaction(db, async (tx) => {
+                    const snap = await tx.get(stateRef);
+                    const data = snap.data();
+                    let items, item;
+                    if (target.kind === 'round1') {
+                        items = data.round1.items;
+                        item = items[target.idx];
+                    } else {
+                        items = data.round2.groups[target.gi].items;
+                        item = items[target.ii];
+                    }
+                    if (!item || item.status !== 'active') throw new Error('此項目目前非進行中，請重新整理頁面');
+                    if (amount <= item.currentBid) throw new Error('出價必須高於目前最高價');
+
+                    const walletRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', currentUid, 'wallet', 'summer_auction');
+                    const walletSnap = await tx.get(walletRef);
+                    const balance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
+                    if (amount > balance) throw new Error('餘額不足');
+
+                    const now = Date.now();
+                    const remaining = item.endsAt - now;
+                    const newEndsAt = remaining < ANTI_SNIPE_MS ? (now + ANTI_SNIPE_MS) : item.endsAt;
+
+                    item.currentBid = amount;
+                    item.currentBidderUid = currentUid;
+                    item.currentBidderName = currentName;
+                    item.endsAt = newEndsAt;
+
+                    if (target.kind === 'round1') {
+                        tx.update(stateRef, { 'round1.items': items, updatedAt: new Date().toISOString() });
+                    } else {
+                        tx.update(stateRef, { 'round2.groups': data.round2.groups, updatedAt: new Date().toISOString() });
+                    }
+                });
+                if (target.kind === 'round2') {
+                    myLastBids[`${target.gi}_${target.ii}`] = amount;
+                }
+            } catch (e) {
+                alert(e.message || '出價失敗，請稍後再試');
+            }
+        }
+
+        // ==========================================
+        // 中場任務：提交邏輯
+        // ==========================================
+        async function submitUniqueness(value) {
+            if (!Number.isInteger(value) || value <= 0) { alert('請輸入正整數'); return; }
+            await setDoc(doc(db, 'public_data', 'auction_state', 'uniqueness_submissions', currentUid), {
+                uid: currentUid, name: currentName, value, submittedAt: new Date().toISOString()
+            });
+            alert('已提交！可在任務結束前重新提交以修改答案。');
+        }
+
+        async function submitAverage(value) {
+            if (!Number.isInteger(value) || value < 1 || value > 10000) { alert('請輸入 1 至 10000 之間的整數'); return; }
+            await setDoc(doc(db, 'public_data', 'auction_state', 'average_submissions', currentUid), {
+                uid: currentUid, name: currentName, value, submittedAt: new Date().toISOString()
+            });
+            alert('已提交！可在任務結束前重新提交以修改答案。');
+        }
+
+        async function addBasketVote(basket) {
+            const voteRef = doc(db, 'public_data', 'auction_state', 'basket_votes', currentUid);
+            try {
+                await runTransaction(db, async (tx) => {
+                    const voteSnap = await tx.get(voteRef);
+                    if (voteSnap.exists()) {
+                        const v = voteSnap.data();
+                        if (v.basket !== basket) throw new Error('已鎖定其他籃子，無法更換');
+                        const walletRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', currentUid, 'wallet', 'summer_auction');
+                        const walletSnap = await tx.get(walletRef);
+                        const balance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
+                        if (balance < 10) throw new Error('餘額不足，無法再投入 10 點');
+                        tx.set(walletRef, { balance: balance - 10 }, { merge: true });
+                        tx.set(voteRef, { ...v, voteCount: v.voteCount + 1, spent: v.spent + 10 }, { merge: true });
+                    } else {
+                        tx.set(voteRef, { uid: currentUid, name: currentName, basket, voteCount: 1, spent: 0, lockedAt: new Date().toISOString() });
+                    }
+                });
+            } catch (e) {
+                alert(e.message || '投票失敗，請稍後再試');
+            }
+        }
+
+        async function refreshBasketTotals() {
+            if (!auctionState || auctionState.phase !== 'break' || !myBasketVote) return;
+            const snap = await getDocs(collection(db, 'public_data', 'auction_state', 'basket_votes'));
+            const totals = { A: 0, B: 0, C: 0 };
+            snap.docs.forEach(d => { const v = d.data(); totals[v.basket] = (totals[v.basket] || 0) + v.voteCount; });
+            basketTotalsCache = totals;
+            const totalsEl = document.getElementById('basket-totals');
+            if (totalsEl) totalsEl.innerText = `A: ${basketTotalsCache.A} 票　B: ${basketTotalsCache.B} 票　C: ${basketTotalsCache.C} 票`;
+        }
+
+        // ==========================================
+        // 階段渲染
+        // 注意：fullRender() 會整個重建 phase-section 的 DOM (含 input 欄位)，
+        // 只應該在資料真的變動時呼叫 (onSnapshot 回呼)，不能放進每 250ms 的計時器，
+        // 否則使用者輸入到一半的出價金額會被清空。計時器改呼叫輕量的 tick()，
+        // 只更新畫面上帶有 data-countdown 屬性的倒數數字文字。
+        // ==========================================
+        let wasUnlocked = false;
+
+        function tickCountdowns() {
+            document.querySelectorAll('[data-countdown]').forEach(el => {
+                const endsAt = parseInt(el.getAttribute('data-countdown'), 10);
+                el.textContent = fmtRemaining(endsAt);
+            });
+        }
+
+        function tick() {
+            const remainingMs = auctionUnlockRemainingMs();
+            const unlocked = remainingMs <= 0;
+
+            if (!unlocked) {
+                wasUnlocked = false;
+                document.getElementById('waiting-card').classList.remove('hidden');
+                document.getElementById('phase-section').classList.add('hidden');
+                document.getElementById('waiting-text').innerText =
+                    `距離開始還有 ${fmtDuration(remainingMs)}（開放時間 ${AUCTION_CONFIG.startTime}）`;
+                return;
+            }
+
+            if (!wasUnlocked) {
+                wasUnlocked = true;
+                fullRender();
+                return;
+            }
+
+            tickCountdowns();
+        }
+
+        function fullRender() {
+            const waitingCard = document.getElementById('waiting-card');
+            const phaseSection = document.getElementById('phase-section');
+
+            if (auctionUnlockRemainingMs() > 0) return; // 尚未到開放時間，交給 tick() 處理等待畫面
+
+            waitingCard.classList.add('hidden');
+            phaseSection.classList.remove('hidden');
+
+            if (!auctionState) {
+                phaseSection.innerHTML = `<div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400">等待老師端啟動拍賣...</div>`;
+                return;
+            }
+
+            switch (auctionState.phase) {
+                case 'round1': renderRound1Phase(); break;
+                case 'break': renderBreakPhase(); break;
+                case 'round2': renderRound2Phase(); break;
+                case 'final': renderFinalPhase(); break;
+                default:
+                    phaseSection.innerHTML = `<div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400">拍賣即將開始，請稍候...</div>`;
+            }
+        }
+
+        function renderRound1Phase() {
+            const phaseSection = document.getElementById('phase-section');
+            const items = auctionState.round1.items;
+            const idx = auctionState.round1.currentItemIndex;
+            const activeItem = idx >= 0 ? items[idx] : null;
+
+            let html = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold text-amber-800 mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined">gavel</span>第一輪拍賣（公開競標）
+                </h2>`;
+
+            if (activeItem && activeItem.status === 'active') {
+                const isLeading = activeItem.currentBidderUid === currentUid;
+                html += `<div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-4">
+                    <div class="text-xl font-bold text-gray-800">${activeItem.name}</div>
+                    <div class="mt-2 text-sm text-gray-600">目前最高價：<span class="text-2xl font-bold text-amber-700">${activeItem.currentBid}</span>　出價者：${activeItem.currentBidderName || '尚無人出價'}</div>
+                    ${isLeading ? '<div class="mt-1 text-emerald-600 font-bold text-sm">🟢 您目前領先！</div>' : ''}
+                    <div class="mt-2 text-3xl font-mono font-bold text-amber-600" data-countdown="${activeItem.endsAt}">${fmtRemaining(activeItem.endsAt)}</div>
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <input id="r1-bid-input" type="number" min="0" step="1" placeholder="輸入出價金額"
+                            class="border border-amber-300 rounded-xl px-3 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <button id="r1-bid-submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-sm">送出出價</button>
+                        <button id="r1-bid-plus500" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-4 py-2 rounded-xl text-sm">+500 快速出價</button>
+                    </div>
+                </div>`;
+            } else {
+                html += `<div class="text-gray-400 text-sm mb-4">目前沒有進行中的項目。</div>`;
+            }
+
+            html += `<div class="grid grid-cols-2 md:grid-cols-3 gap-2">`;
+            items.forEach((it, i) => {
+                let badge = '尚未開始';
+                let cls = 'bg-gray-50 text-gray-400 border-gray-100';
+                if (it.status === 'active') { badge = '進行中'; cls = 'bg-amber-100 text-amber-700 border-amber-200'; }
+                if (it.status === 'sold') { badge = `${it.winnerName || '流標'} / ${it.finalPrice}`; cls = 'bg-emerald-50 text-emerald-700 border-emerald-100'; }
+                html += `<div class="p-2 rounded-lg border text-xs ${cls}"><div class="font-bold">${it.name}</div><div>${badge}</div></div>`;
+            });
+            html += `</div></div>`;
+
+            phaseSection.innerHTML = html;
+
+            const submitBtn = document.getElementById('r1-bid-submit');
+            const plus500Btn = document.getElementById('r1-bid-plus500');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', () => {
+                    const val = parseInt(document.getElementById('r1-bid-input').value, 10);
+                    submitBid({ kind: 'round1', idx }, val);
+                });
+            }
+            if (plus500Btn) {
+                plus500Btn.addEventListener('click', () => {
+                    submitBid({ kind: 'round1', idx }, activeItem.currentBid + 500);
+                });
+            }
+        }
+
+        function renderBreakPhase() {
+            const phaseSection = document.getElementById('phase-section');
+            const bs = auctionState.breakState;
+
+            let html = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold text-purple-800 mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined">psychology</span>中場任務
+                </h2>`;
+
+            if (bs.status === 'not_started') {
+                html += `<div class="text-gray-400 text-sm">中場休息中，任務即將開始...</div></div>`;
+                phaseSection.innerHTML = html;
+                return;
+            }
+
+            if (bs.status === 'running') {
+                html += `<div class="text-2xl font-mono font-bold text-purple-600 mb-4" data-countdown="${bs.endsAt}">${fmtRemaining(bs.endsAt)}</div>`;
+            } else {
+                html += `<div class="text-emerald-600 font-bold mb-4">✅ 任務已結算，點數已發放至您的錢包。</div>`;
+            }
+
+            const disabled = bs.status !== 'running' ? 'disabled' : '';
+
+            // 任務一：猜數字
+            html += `<div class="border border-purple-100 rounded-xl p-4 mb-3">
+                <div class="font-bold text-gray-800 mb-1">任務一：最小且沒有重複的數字</div>
+                <p class="text-xs text-gray-500 mb-2">繳交一個正整數，寫出「最小且沒有和其他人重複」的數字者可得 2000 點。</p>
+                <div class="flex gap-2">
+                    <input id="uniq-input" type="number" min="1" step="1" ${disabled} class="border border-purple-300 rounded-xl px-3 py-2 text-sm w-32">
+                    <button id="uniq-submit" ${disabled} class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40">提交</button>
+                </div>
+            </div>`;
+
+            // 任務二：猜平均
+            html += `<div class="border border-purple-100 rounded-xl p-4 mb-3">
+                <div class="font-bold text-gray-800 mb-1">任務二：猜算術平均數</div>
+                <p class="text-xs text-gray-500 mb-2">繳交一個正整數 n (1~10000)，猜全體同學繳交數字的平均數 A，可得 round(10n/(n-A)) 點。</p>
+                <div class="flex gap-2">
+                    <input id="avg-input" type="number" min="1" max="10000" step="1" ${disabled} class="border border-purple-300 rounded-xl px-3 py-2 text-sm w-32">
+                    <button id="avg-submit" ${disabled} class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40">提交</button>
+                </div>
+            </div>`;
+
+            // 任務三：籃子
+            html += `<div class="border border-purple-100 rounded-xl p-4">
+                <div class="font-bold text-gray-800 mb-1">任務三：籃子投票</div>
+                <p class="text-xs text-gray-500 mb-2">每 10 點 = 1 票，第一票免費但會鎖定籃子。最高票籃子的每位貢獻者可得 50 × 自己的票數。</p>`;
+
+            if (!myBasketVote) {
+                html += `<div class="flex gap-2">
+                    <button data-basket="A" ${disabled} class="basket-btn bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40">籃子 A</button>
+                    <button data-basket="B" ${disabled} class="basket-btn bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40">籃子 B</button>
+                    <button data-basket="C" ${disabled} class="basket-btn bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40">籃子 C</button>
+                </div>`;
+            } else {
+                html += `<div class="text-sm text-gray-700 mb-2">您已鎖定籃子 <b>${myBasketVote.basket}</b>，目前票數：${myBasketVote.voteCount}（已花費 ${myBasketVote.spent} 點）</div>
+                    <button data-basket="${myBasketVote.basket}" ${disabled} class="basket-btn bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40">+1 票 (10點)</button>
+                    <div id="basket-totals" class="mt-3 text-sm text-gray-600">票數統計讀取中...</div>`;
+            }
+            html += `</div></div>`;
+
+            phaseSection.innerHTML = html;
+
+            const uniqBtn = document.getElementById('uniq-submit');
+            if (uniqBtn) uniqBtn.addEventListener('click', () => submitUniqueness(parseInt(document.getElementById('uniq-input').value, 10)));
+            const avgBtn = document.getElementById('avg-submit');
+            if (avgBtn) avgBtn.addEventListener('click', () => submitAverage(parseInt(document.getElementById('avg-input').value, 10)));
+            document.querySelectorAll('.basket-btn').forEach(btn => {
+                btn.addEventListener('click', () => addBasketVote(btn.dataset.basket));
+            });
+
+            if (myBasketVote) {
+                const totalsEl = document.getElementById('basket-totals');
+                if (totalsEl) {
+                    totalsEl.innerText = `A: ${basketTotalsCache.A} 票　B: ${basketTotalsCache.B} 票　C: ${basketTotalsCache.C} 票`;
+                }
+            }
+        }
+
+        function renderRound2Phase() {
+            const phaseSection = document.getElementById('phase-section');
+            const gi = auctionState.round2.currentGroupIndex;
+
+            let html = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined">visibility_off</span>第二輪拍賣（暗標，出價金額不公開）
+                </h2>`;
+
+            if (gi < 0) {
+                html += `<div class="text-gray-400 text-sm">尚未開始</div></div>`;
+                phaseSection.innerHTML = html;
+                return;
+            }
+
+            const group = auctionState.round2.groups[gi];
+            html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+            group.items.forEach((item, ii) => {
+                const bidKey = `${gi}_${ii}`;
+                const hasMyBid = myLastBids[bidKey] !== undefined;
+                const isLeading = item.currentBidderUid === currentUid;
+
+                html += `<div class="border border-blue-100 rounded-xl p-4">
+                    <div class="font-bold text-gray-800 mb-1">${item.name}</div>`;
+
+                if (item.status === 'active') {
+                    html += `<div class="text-3xl font-mono font-bold text-blue-600" data-countdown="${item.endsAt}">${fmtRemaining(item.endsAt)}</div>
+                        <div class="text-sm mt-1 ${isLeading ? 'text-emerald-600 font-bold' : (hasMyBid ? 'text-red-500 font-bold' : 'text-gray-400')}">
+                            ${isLeading ? '🟢 目前領先' : (hasMyBid ? '🔴 已被超越' : '尚未出價')}
+                            ${hasMyBid ? `（您的出價：${myLastBids[bidKey]}）` : ''}
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <input id="r2-bid-input-${bidKey}" type="number" min="0" step="1" placeholder="輸入出價金額"
+                                class="border border-blue-300 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <button data-r2-submit="${bidKey}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm">送出出價</button>
+                        </div>`;
+                } else if (item.status === 'sold') {
+                    html += `<div class="text-sm text-emerald-700">得標者：${item.winnerName || '流標'}　成交價：${item.finalPrice}</div>`;
+                } else {
+                    html += `<div class="text-gray-400 text-sm">尚未開始</div>`;
+                }
+                html += `</div>`;
+            });
+            html += `</div></div>`;
+
+            phaseSection.innerHTML = html;
+
+            group.items.forEach((item, ii) => {
+                const bidKey = `${gi}_${ii}`;
+                const btn = document.querySelector(`[data-r2-submit="${bidKey}"]`);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        const val = parseInt(document.getElementById(`r2-bid-input-${bidKey}`).value, 10);
+                        submitBid({ kind: 'round2', gi, ii }, val);
+                    });
+                }
+            });
+        }
+
+        function renderFinalPhase() {
+            const phaseSection = document.getElementById('phase-section');
+            let html = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined">celebration</span>最終階段
+                </h2>`;
+
+            if (currentBalance >= 2000) {
+                html += `<div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
+                    <div class="text-4xl mb-2">🎉</div>
+                    <div class="text-lg font-bold text-emerald-800">恭喜！您獲得一個「躲貓貓小人」！</div>
+                    <div class="text-sm text-emerald-600 mt-1">餘額 ${currentBalance} ≥ 2000，已自動獲得資格，無需扣點。</div>
+                </div>`;
+            } else {
+                html += `<div class="text-gray-500 text-sm">目前餘額 ${currentBalance}，未達 2000 點門檻，無法獲得躲貓貓小人。</div>`;
+            }
+            html += `</div>`;
+            phaseSection.innerHTML = html;
+        }
     </script>
 </body>
 

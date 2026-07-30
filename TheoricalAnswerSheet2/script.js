@@ -391,7 +391,7 @@ function closeAlertModal() {
 }
 
 // ==========================================
-// 🏛️ 暑期競標：交卷時自動入帳 pow(第二次理論總分, 4) 點
+// 🏛️ 暑期競標：交卷時自動入帳 pow(第二次理論總分, 2) 點
 // 用固定的 transaction doc ID ('theory_test_2') 讓這筆入帳天生具備冪等性。
 // ==========================================
 async function creditAuctionWallet(uid, totalScore) {
@@ -405,7 +405,7 @@ async function creditAuctionWallet(uid, totalScore) {
 
             const walletSnap = await transaction.get(walletRef);
             const currentBalance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
-            const amount = Math.pow(totalScore, 4);
+            const amount = Math.pow(totalScore, 2);
             const newBalance = currentBalance + amount;
             const timestamp = new Date().toISOString();
 

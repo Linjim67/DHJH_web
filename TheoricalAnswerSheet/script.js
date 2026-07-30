@@ -1233,7 +1233,7 @@ function closeAlertModal() {
 // 模組八：系統交卷傳輸 (已串接 Firebase)
 // ==========================================
 // ==========================================
-// 🏛️ 暑期競標：交卷時自動入帳 pow(理論總分, 4) 點
+// 🏛️ 暑期競標：交卷時自動入帳 pow(理論總分, 2) 點
 // 用固定的 transaction doc ID ('theory_test_1') 讓這筆入帳天生具備冪等性，
 // 就算學生清掉 localStorage 後重新交卷，也不會被重複入帳灌水。
 // ==========================================
@@ -1248,7 +1248,7 @@ async function creditAuctionWallet(uid, totalScore) {
 
             const walletSnap = await transaction.get(walletRef);
             const currentBalance = walletSnap.exists() ? (walletSnap.data().balance || 0) : 0;
-            const amount = Math.pow(totalScore, 4);
+            const amount = Math.pow(totalScore, 2);
             const newBalance = currentBalance + amount;
             const timestamp = new Date().toISOString();
 
