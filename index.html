@@ -467,7 +467,7 @@
                     if (navTranscript) navTranscript.style.display = 'none';
                     if (navAuction) navAuction.style.display = 'none';
                     if (navSolution) navSolution.style.display = 'none';
-
+                    /*
                     if (!submitted1) {
                         // 第一次理論測驗尚未交卷：顯示第一次作答區
                         if (navExam) navExam.style.display = 'flex';
@@ -479,7 +479,10 @@
                         if (navTranscript) navTranscript.style.display = 'flex';
                         if (navAuction) navAuction.style.display = 'flex';
                         if (navSolution) navSolution.style.display = 'flex';
-                    }
+                    } */
+                   navTranscript.style.display = 'flex'
+                   if (navSolution) navSolution.style.display = 'flex'
+                   
                 } catch (e) {
                     console.error("無法檢查交卷狀態:", e);
                 }
