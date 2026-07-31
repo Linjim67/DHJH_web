@@ -81,22 +81,75 @@
             filter: drop-shadow(0 1px 2px rgba(239, 68, 68, 0.45));
         }
 
-        /* 水平箱型圖 (橫式) 的「您的得分」改用圓點覆蓋在 SVG 上方，
-           因為 SVG 使用 preserveAspectRatio="none" 做非等比縮放，
-           若直接在 SVG 內畫 <circle> 會被拉伸成橢圓，所以改用固定尺寸的
-           HTML 圓點疊加，才能在任何寬度下都維持正圓形。 */
-        .box-plot-dot {
+        /* ============================================================
+           橫式箱型圖 (大題標題與全體總分卡片用)。
+           改用純 div + 絕對定位的「扁平色塊」風格，取代舊版 SVG 細線，
+           每個元素的 left/width 由 JS 依資料動態計算後以 inline style 帶入，
+           這裡的 CSS 只負責固定尺寸/顏色/造型。
+           小題 (per-question) 的直式箱型圖不受影響，仍使用上面的 SVG 樣式。
+           ============================================================ */
+        .box-plot-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            margin: 0 auto;
+        }
+
+        .box-plot-whisker-track {
             position: absolute;
             top: 50%;
-            width: 12px;
-            height: 12px;
-            margin-left: -6px;
-            margin-top: -6px;
-            background: #ef4444;
-            border: 2px solid #fff;
-            border-radius: 9999px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            height: 8px;
+            background-color: #596a78;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .box-plot-whisker-cap {
+            position: absolute;
+            top: 50%;
+            width: 8px;
+            height: 48px;
+            background-color: #596a78;
+            transform: translate(-50%, -50%);
             z-index: 2;
+        }
+
+        .box-plot-interquartile-box {
+            position: absolute;
+            top: 50%;
+            height: 96px;
+            border: 8px solid #596a78;
+            border-radius: 16px;
+            background-color: transparent;
+            box-sizing: border-box;
+            transform: translateY(-50%);
+            z-index: 3;
+        }
+
+        .box-plot-median-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            background-color: #596a78;
+            transform: translateX(-50%);
+            z-index: 3;
+        }
+
+        .box-plot-indicator-thumb {
+            position: absolute;
+            top: 50%;
+            width: 72px;
+            height: 72px;
+            background-color: #a7bde1;
+            border: 8px solid #284175;
+            border-radius: 16px;
+            box-sizing: border-box;
+            transform: translate(-50%, -50%);
+            z-index: 4;
         }
     </style>
 </head>
@@ -213,23 +266,20 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // SVG 繪圖函數
+        // 橫式箱型圖：純 div + 絕對定位的扁平色塊風格 (大題標題／全體總分卡片用)
         function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
             const mapX = (val) => (val / maxScore) * 100;
             const xMin = mapX(min), xMax = mapX(max), xLq = mapX(lq), xUq = mapX(uq), xMed = mapX(median);
             const xScore = Math.min(100, Math.max(0, mapX(score)));
-            const boxWidth = Math.max(xUq - xLq, 0.6);
+            const boxWidth = Math.max(xUq - xLq, 1.5);
             return `
-                <div class="relative w-full h-[40px]">
-                    <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none" class="overflow-visible absolute inset-0">
-                        <line x1="${xMin}" y1="20" x2="${xMax}" y2="20" class="box-plot-whisker" />
-                        <line x1="${xMin}" y1="15" x2="${xMin}" y2="25" class="box-plot-whisker" />
-                        <line x1="${xMax}" y1="15" x2="${xMax}" y2="25" class="box-plot-whisker" />
-                        <rect x="${xLq}" y="11" width="${boxWidth}" height="18" rx="5" class="box-plot-box" />
-                        <line x1="${xMed}" y1="9" x2="${xMed}" y2="31" class="box-plot-median" />
-                    </svg>
-                    <!-- 得分圓點：用固定尺寸的 HTML 元素疊加，避免 SVG 非等比縮放把圓點拉成橢圓 -->
-                    <div class="box-plot-dot" style="left: ${xScore}%;"></div>
+                <div class="box-plot-container">
+                    <div class="box-plot-whisker-track" style="left: ${xMin}%; width: ${xMax - xMin}%;"></div>
+                    <div class="box-plot-whisker-cap" style="left: ${xMin}%;"></div>
+                    <div class="box-plot-whisker-cap" style="left: ${xMax}%;"></div>
+                    <div class="box-plot-interquartile-box" style="left: ${xLq}%; width: ${boxWidth}%;"></div>
+                    <div class="box-plot-median-line" style="left: ${xMed}%;"></div>
+                    <div class="box-plot-indicator-thumb" style="left: ${xScore}%;"></div>
                 </div>
             `;
         }
