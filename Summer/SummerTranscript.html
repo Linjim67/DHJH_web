@@ -127,6 +127,7 @@
                     </div>
                 </div>
             </div>
+            <div id="practical-overall-plot" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3"></div>
             <main id="practical-container" class="space-y-4"></main>
         </section>
 
@@ -146,13 +147,14 @@
                     </div>
                 </div>
             </div>
+            <div id="theory-overall-plot" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3"></div>
             <main id="theory-container" class="space-y-4"></main>
         </section>
 
         <section>
             <div
                 class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h2 class="text-lg font-bold text-gray-700">第二次理論測驗</h2>
+                <h2 class="text-lg font-bold text-gray-700">估計大賽</h2>
                 <div class="flex items-center gap-6">
                     <div class="text-center">
                         <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
@@ -165,6 +167,7 @@
                     </div>
                 </div>
             </div>
+            <div id="theory2-overall-plot" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3"></div>
             <main id="theory2-container" class="space-y-4"></main>
         </section>
     </div>
@@ -325,15 +328,15 @@
             p8: 10, p9: 10, p10: 25, p11: 15
         };
         const PRACTICAL_GROUPS = {
-            "Set1": { title: "第一份題本", questions: ["p1", "p2", "p3", "p4", "p5", "p6", "p7"], maxScore: 100 },
-            "Set2": { title: "第二份題本", questions: ["p8", "p9", "p10", "p11"], maxScore: 60 }
+            "Set1": { title: "第一大題", questions: ["p1", "p2", "p3", "p4", "p5", "p6", "p7"], maxScore: 100 },
+            "Set2": { title: "第二大題", questions: ["p8", "p9", "p10", "p11"], maxScore: 60 }
         };
         const getPracticalDisplayTitle = qId => qId.toUpperCase();
         const getPracticalQuestionMax = qId => PRACTICAL_MAX_SCORES[qId] || 0;
 
         // 第二次理論測驗：10 題填充題，每題 8 分，滿分 80
         const THEORY2_GROUPS = {
-            "Part1": { title: "第二次理論測驗", questions: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], maxScore: 80 }
+            "Part1": { title: "估計大賽", questions: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], maxScore: 80 }
         };
         const getTheory2QuestionMax = () => 8;
 
@@ -355,8 +358,11 @@
                 try {
                     document.getElementById('student-name').innerText = `學生：${user.displayName || user.email}`;
 
-                    function fallbackPublicData(groups) {
-                        const publicData = { totalStudents: 0, groups: {}, questions: {} };
+                    function fallbackPublicData(groups, overallMax) {
+                        const publicData = {
+                            totalStudents: 0, groups: {}, questions: {},
+                            overall: { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0, maxScore: overallMax || 1 }
+                        };
                         Object.entries(groups).forEach(([groupId, groupInfo]) => {
                             publicData.groups[groupId] = {
                                 title: groupInfo.title, maxScore: groupInfo.maxScore,
@@ -367,9 +373,49 @@
                         return publicData;
                     }
 
-                    async function loadPublicStats(docId, groups) {
+                    async function loadPublicStats(docId, groups, overallMax) {
                         const snap = await getDoc(doc(db, 'public_data', docId));
-                        return snap.exists() ? snap.data() : fallbackPublicData(groups);
+                        if (!snap.exists()) return fallbackPublicData(groups, overallMax);
+                        const data = snap.data();
+                        // 相容尚未重新結算過、還沒有 overall 欄位的舊統計資料
+                        if (!data.overall) data.overall = { mean: 0, median: 0, high: 0, low: 0, uq: 0, lq: 0, maxScore: overallMax || 1 };
+                        return data;
+                    }
+
+                    // 個人成績 0 分視為「尚未收到成績」而非真的考 0 分；
+                    // 顯示前先四捨五入至小數點後兩位，和統計端 (ScoreCalculator.html) 的算法保持一致。
+                    function renderTotalScore(elId, rawScore) {
+                        const el = document.getElementById(elId);
+                        const rounded = Math.round((rawScore || 0) * 100) / 100;
+                        if (rounded === 0) {
+                            el.innerText = '尚未收到成績';
+                            el.classList.remove('text-3xl', 'text-emerald-600');
+                            el.classList.add('text-base', 'text-gray-400');
+                        } else {
+                            el.innerText = rounded;
+                            el.classList.remove('text-base', 'text-gray-400');
+                            el.classList.add('text-3xl', 'text-emerald-600');
+                        }
+                        return rounded;
+                    }
+
+                    // 在各區塊標題下方畫出「全體總分」的箱型圖，讓學生知道自己的總分落在班上哪個位置
+                    function renderOverallStat(containerId, overall, myScore) {
+                        const container = document.getElementById(containerId);
+                        if (!container || !overall) return;
+                        if (!overall.high && !overall.low && !overall.mean) {
+                            container.classList.add('hidden');
+                            return;
+                        }
+                        container.classList.remove('hidden');
+                        const maxScore = overall.maxScore || 1;
+                        container.innerHTML = `
+                            <div class="flex justify-between items-center mb-2 text-xs text-gray-500">
+                                <span class="font-semibold text-gray-600">全體總分分佈</span>
+                                <span>Mean: ${overall.mean.toFixed(2)}　Median: ${overall.median}　High: ${overall.high}　Low: ${overall.low}</span>
+                            </div>
+                            ${createHorizontalBoxPlot(overall.low, overall.high, overall.lq, overall.median, overall.uq, myScore, maxScore)}
+                        `;
                     }
 
                     const theoryResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
@@ -398,9 +444,11 @@
                             practicalGroupScores[groupId] = groupInfo.questions.reduce((sum, qId) => sum + (practicalScores[qId] || 0), 0);
                         });
 
-                        const practicalPublicData = await loadPublicStats('practical_test_1_stats', PRACTICAL_GROUPS);
-                        document.getElementById('practical-score').innerText = practicalTotalScore;
+                        const practicalOverallMax = Object.values(PRACTICAL_GROUPS).reduce((s, g) => s + g.maxScore, 0);
+                        const practicalPublicData = await loadPublicStats('practical_test_1_stats', PRACTICAL_GROUPS, practicalOverallMax);
+                        const roundedPracticalTotal = renderTotalScore('practical-score', practicalTotalScore);
                         document.getElementById('practical-total-students').innerText = practicalPublicData.totalStudents || 0;
+                        renderOverallStat('practical-overall-plot', practicalPublicData.overall, roundedPracticalTotal);
 
                         renderQuestionGroupSection('practical-container', PRACTICAL_GROUPS, practicalScores, practicalGroupScores, practicalPublicData, {
                             getQuestionMax: getPracticalQuestionMax,
@@ -428,9 +476,11 @@
                             theoryTotalScore += groupScores[groupId];
                         });
 
-                        const theoryPublicData = await loadPublicStats('theory_test_1_stats', QUESTION_GROUPS);
-                        document.getElementById('theory-score').innerText = theoryTotalScore;
+                        const theoryOverallMax = Object.values(QUESTION_GROUPS).reduce((s, g) => s + g.maxScore, 0);
+                        const theoryPublicData = await loadPublicStats('theory_test_1_stats', QUESTION_GROUPS, theoryOverallMax);
+                        const roundedTheoryTotal = renderTotalScore('theory-score', theoryTotalScore);
                         document.getElementById('theory-total-students').innerText = theoryPublicData.totalStudents || 0;
+                        renderOverallStat('theory-overall-plot', theoryPublicData.overall, roundedTheoryTotal);
 
                         renderQuestionGroupSection('theory-container', QUESTION_GROUPS, theoryScores, groupScores, theoryPublicData, {
                             getQuestionMax: () => 5,
@@ -460,16 +510,18 @@
                             ? rawTheory2Data.score
                             : Object.values(theory2GroupScores).reduce((sum, v) => sum + v, 0);
 
-                        const theory2PublicData = await loadPublicStats('theory_test_2_stats', THEORY2_GROUPS);
-                        document.getElementById('theory2-score').innerText = Math.round(theory2TotalScore * 100) / 100;
+                        const theory2OverallMax = Object.values(THEORY2_GROUPS).reduce((s, g) => s + g.maxScore, 0);
+                        const theory2PublicData = await loadPublicStats('theory_test_2_stats', THEORY2_GROUPS, theory2OverallMax);
+                        const roundedTheory2Total = renderTotalScore('theory2-score', theory2TotalScore);
                         document.getElementById('theory2-total-students').innerText = theory2PublicData.totalStudents || 0;
+                        renderOverallStat('theory2-overall-plot', theory2PublicData.overall, roundedTheory2Total);
 
                         renderQuestionGroupSection('theory2-container', THEORY2_GROUPS, theory2Scores, theory2GroupScores, theory2PublicData, {
                             getQuestionMax: getTheory2QuestionMax,
                             getDisplayTitle: qId => qId
                         });
                     } else {
-                        document.getElementById('theory2-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有第二次理論測驗成績</p>`;
+                        document.getElementById('theory2-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有估計大賽成績</p>`;
                     }
 
                     document.getElementById('loading').classList.add('hidden');
