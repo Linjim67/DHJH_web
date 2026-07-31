@@ -184,66 +184,72 @@
         </div>
 
         <section>
-            <div
-                class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 class="text-lg font-bold text-gray-700 shrink-0">實作測驗</h2>
-                <div id="practical-overall-plot" class="hidden w-full md:flex-1"></div>
-                <div class="flex items-center gap-4 md:gap-6 flex-wrap shrink-0">
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">扣分</div>
-                        <div id="practical-deduction" class="text-3xl font-bold text-rose-500">--</div>
-                    </div>
-                    <div class="w-px h-10 bg-gray-200"></div>
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">實作分數</div>
-                        <div id="practical-score" class="text-3xl font-bold text-emerald-600">--</div>
-                    </div>
-                    <div class="w-px h-10 bg-gray-200"></div>
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">有成績人數</div>
-                        <div id="practical-total-students" class="text-3xl font-bold text-blue-600">0</div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800 shrink-0">實作測驗</h2>
+                    <div class="flex items-center gap-4 md:gap-6 flex-wrap shrink-0">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">扣分</div>
+                            <div id="practical-deduction" class="text-3xl font-bold text-rose-500">--</div>
+                        </div>
+                        <div class="w-px h-10 bg-gray-200"></div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">實作分數</div>
+                            <div id="practical-score" class="text-3xl font-bold text-emerald-600">--</div>
+                        </div>
+                        <div class="w-px h-10 bg-gray-200"></div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">有成績人數</div>
+                            <div id="practical-total-students" class="text-3xl font-bold text-blue-600">0</div>
+                        </div>
                     </div>
                 </div>
+                <div id="practical-overall-plot"
+                    class="hidden flex flex-col md:flex-row items-center gap-4 pt-4 mt-4 border-t border-gray-100"></div>
             </div>
             <main id="practical-container" class="space-y-4"></main>
         </section>
 
         <section>
-            <div
-                class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 class="text-lg font-bold text-gray-700 shrink-0">理論測驗</h2>
-                <div id="theory-overall-plot" class="hidden w-full md:flex-1"></div>
-                <div class="flex items-center gap-6 shrink-0">
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
-                        <div id="theory-score" class="text-3xl font-bold text-emerald-600">--</div>
-                    </div>
-                    <div class="w-px h-10 bg-gray-200"></div>
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
-                        <div id="theory-total-students" class="text-3xl font-bold text-blue-600">0</div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800 shrink-0">理論測驗</h2>
+                    <div class="flex items-center gap-6 shrink-0">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
+                            <div id="theory-score" class="text-3xl font-bold text-emerald-600">--</div>
+                        </div>
+                        <div class="w-px h-10 bg-gray-200"></div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
+                            <div id="theory-total-students" class="text-3xl font-bold text-blue-600">0</div>
+                        </div>
                     </div>
                 </div>
+                <div id="theory-overall-plot"
+                    class="hidden flex flex-col md:flex-row items-center gap-4 pt-4 mt-4 border-t border-gray-100"></div>
             </div>
             <main id="theory-container" class="space-y-4"></main>
         </section>
 
         <section>
-            <div
-                class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 class="text-lg font-bold text-gray-700 shrink-0">估計大賽</h2>
-                <div id="theory2-overall-plot" class="hidden w-full md:flex-1"></div>
-                <div class="flex items-center gap-6 shrink-0">
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
-                        <div id="theory2-score" class="text-3xl font-bold text-emerald-600">--</div>
-                    </div>
-                    <div class="w-px h-10 bg-gray-200"></div>
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
-                        <div id="theory2-total-students" class="text-3xl font-bold text-blue-600">0</div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800 shrink-0">估計大賽</h2>
+                    <div class="flex items-center gap-6 shrink-0">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">理論分數</div>
+                            <div id="theory2-score" class="text-3xl font-bold text-emerald-600">--</div>
+                        </div>
+                        <div class="w-px h-10 bg-gray-200"></div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
+                            <div id="theory2-total-students" class="text-3xl font-bold text-blue-600">0</div>
+                        </div>
                     </div>
                 </div>
+                <div id="theory2-overall-plot"
+                    class="hidden flex flex-col md:flex-row items-center gap-4 pt-4 mt-4 border-t border-gray-100"></div>
             </div>
             <main id="theory2-container" class="space-y-4"></main>
         </section>
@@ -336,7 +342,7 @@
                         <div class="flex justify-between items-end mb-3 border-b pb-2">
                             <h2 class="text-xl font-bold text-gray-800">${groupStats.title}</h2>
                             <div class="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-lg">
-                                得分: ${myGroupScore} <span class="text-sm text-gray-400 font-medium">/ ${groupStats.maxScore}</span>
+                                ${myGroupScore} <span class="text-sm text-gray-400 font-medium">/ ${groupStats.maxScore}</span>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-x-2 gap-y-1.5 text-[13px] text-gray-600">
@@ -494,9 +500,9 @@
                         if (overallPlot) overallPlot.classList.add('hidden');
                     }
 
-                    // 在標題列內畫出「全體總分」的箱型圖，讓學生知道自己的總分落在班上哪個位置。
-                    // 直接嵌在標題那一整排裡 (title / 箱型圖 / 統計數字)，所以這裡不需要
-                    // 額外的卡片外框或「全體總分分佈」文字說明。
+                    // 在標題卡片下方畫出「全體總分」統計，讓學生知道自己的總分落在班上哪個位置。
+                    // 格式與題組 (renderQuestionGroupSection) 一致：
+                    // 左邊 Mean/High/Low/Median/Upper Q/Lower Q 統計格線，右邊橫式箱型圖。
                     function renderOverallStat(containerId, overall, myScore) {
                         const container = document.getElementById(containerId);
                         if (!container || !overall) return;
@@ -506,7 +512,21 @@
                         }
                         container.classList.remove('hidden');
                         const maxScore = overall.maxScore || 1;
-                        container.innerHTML = createHorizontalBoxPlot(overall.low, overall.high, overall.lq, overall.median, overall.uq, myScore, maxScore);
+                        container.innerHTML = `
+                            <div class="w-full md:w-1/2">
+                                <div class="grid grid-cols-3 gap-x-2 gap-y-1.5 text-[13px] text-gray-600">
+                                    <div><span class="font-medium">Mean:</span> ${overall.mean.toFixed(2)}</div>
+                                    <div><span class="font-medium">High:</span> ${overall.high}</div>
+                                    <div><span class="font-medium">Low:</span> ${overall.low}</div>
+                                    <div><span class="font-medium">Median:</span> ${overall.median}</div>
+                                    <div><span class="font-medium">Upper Q:</span> ${overall.uq}</div>
+                                    <div><span class="font-medium">Lower Q:</span> ${overall.lq}</div>
+                                </div>
+                            </div>
+                            <div class="w-full md:w-1/2">
+                                ${createHorizontalBoxPlot(overall.low, overall.high, overall.lq, overall.median, overall.uq, myScore, maxScore)}
+                            </div>
+                        `;
                     }
 
                     const theoryResultRef = doc(db, 'artifacts', 'dhjh-summer-camp', 'users', user.uid, 'exam_results', 'theory_test_1');
