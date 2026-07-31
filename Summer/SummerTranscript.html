@@ -56,30 +56,47 @@
         }
 
         .box-plot-whisker {
-            stroke: #64748b;
+            stroke: #a5b4d1;
             stroke-width: 1.5;
+            stroke-linecap: round;
         }
 
         .box-plot-box {
             fill: #e0e7ff;
-            stroke: #3730a3;
+            fill-opacity: 0.85;
+            stroke: #6366f1;
             stroke-width: 1.5;
         }
 
         .box-plot-median {
-            stroke: #3730a3;
-            stroke-width: 2;
+            stroke: #4338ca;
+            stroke-width: 2.5;
+            stroke-linecap: round;
         }
 
         .box-plot-student {
             fill: #ef4444;
             stroke: #fff;
-            stroke-width: 1;
+            stroke-width: 1.5;
+            filter: drop-shadow(0 1px 2px rgba(239, 68, 68, 0.45));
         }
 
-        .box-plot-student-line {
-            stroke: #ef4444;
-            stroke-width: 2.5;
+        /* 水平箱型圖 (橫式) 的「您的得分」改用圓點覆蓋在 SVG 上方，
+           因為 SVG 使用 preserveAspectRatio="none" 做非等比縮放，
+           若直接在 SVG 內畫 <circle> 會被拉伸成橢圓，所以改用固定尺寸的
+           HTML 圓點疊加，才能在任何寬度下都維持正圓形。 */
+        .box-plot-dot {
+            position: absolute;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            margin-left: -6px;
+            margin-top: -6px;
+            background: #ef4444;
+            border: 2px solid #fff;
+            border-radius: 9999px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            z-index: 2;
         }
     </style>
 </head>
@@ -101,10 +118,10 @@
 
         <div class="flex flex-wrap items-center justify-end gap-4 text-xs font-medium text-gray-500 px-2">
             <div class="flex items-center gap-1.5">
-                <div class="w-3 h-3 bg-[#e0e7ff] border border-[#3730a3]"></div> 50% 學生分佈 (Q1-Q3)
+                <div class="w-3 h-3 rounded-[3px] bg-[#e0e7ff] border border-[#6366f1]"></div> 50% 學生分佈 (Q1-Q3)
             </div>
             <div class="flex items-center gap-1.5">
-                <div class="w-0.5 h-3 bg-[#3730a3]"></div> 中位數 (Median)
+                <div class="w-0.5 h-3 bg-[#4338ca]"></div> 中位數 (Median)
             </div>
             <div class="flex items-center gap-1.5">
                 <div class="w-3 h-3 bg-red-500 rounded-full"></div> 您的得分
@@ -115,14 +132,19 @@
             <div
                 class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h2 class="text-lg font-bold text-gray-700">實作測驗</h2>
-                <div class="flex items-center gap-6">
+                <div class="flex items-center gap-4 md:gap-6 flex-wrap">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">扣分</div>
+                        <div id="practical-deduction" class="text-3xl font-bold text-rose-500">--</div>
+                    </div>
+                    <div class="w-px h-10 bg-gray-200"></div>
                     <div class="text-center">
                         <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">實作分數</div>
                         <div id="practical-score" class="text-3xl font-bold text-emerald-600">--</div>
                     </div>
                     <div class="w-px h-10 bg-gray-200"></div>
                     <div class="text-center">
-                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">已交卷人數</div>
+                        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">有成績人數</div>
                         <div id="practical-total-students" class="text-3xl font-bold text-blue-600">0</div>
                     </div>
                 </div>
@@ -194,31 +216,37 @@
         // SVG 繪圖函數
         function createHorizontalBoxPlot(min, max, lq, median, uq, score, maxScore) {
             const mapX = (val) => (val / maxScore) * 100;
-            const xMin = mapX(min), xMax = mapX(max), xLq = mapX(lq), xUq = mapX(uq), xMed = mapX(median), xScore = mapX(score);
+            const xMin = mapX(min), xMax = mapX(max), xLq = mapX(lq), xUq = mapX(uq), xMed = mapX(median);
+            const xScore = Math.min(100, Math.max(0, mapX(score)));
+            const boxWidth = Math.max(xUq - xLq, 0.6);
             return `
-                <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none" class="overflow-visible">
-                    <line x1="${xMin}" y1="20" x2="${xMax}" y2="20" class="box-plot-whisker" />
-                    <line x1="${xMin}" y1="12" x2="${xMin}" y2="28" class="box-plot-whisker" />
-                    <line x1="${xMax}" y1="12" x2="${xMax}" y2="28" class="box-plot-whisker" />
-                    <rect x="${xLq}" y="10" width="${xUq - xLq}" height="20" rx="2" class="box-plot-box" />
-                    <line x1="${xMed}" y1="10" x2="${xMed}" y2="30" class="box-plot-median" />
-                    <line x1="${xScore}" y1="5" x2="${xScore}" y2="35" class="box-plot-student-line" />
-                </svg>
+                <div class="relative w-full h-[40px]">
+                    <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none" class="overflow-visible absolute inset-0">
+                        <line x1="${xMin}" y1="20" x2="${xMax}" y2="20" class="box-plot-whisker" />
+                        <line x1="${xMin}" y1="15" x2="${xMin}" y2="25" class="box-plot-whisker" />
+                        <line x1="${xMax}" y1="15" x2="${xMax}" y2="25" class="box-plot-whisker" />
+                        <rect x="${xLq}" y="11" width="${boxWidth}" height="18" rx="5" class="box-plot-box" />
+                        <line x1="${xMed}" y1="9" x2="${xMed}" y2="31" class="box-plot-median" />
+                    </svg>
+                    <!-- 得分圓點：用固定尺寸的 HTML 元素疊加，避免 SVG 非等比縮放把圓點拉成橢圓 -->
+                    <div class="box-plot-dot" style="left: ${xScore}%;"></div>
+                </div>
             `;
         }
 
         function createVerticalBoxPlot(min, max, lq, median, uq, score, maxScore = 5) {
             const mapY = (val) => 100 - ((val / maxScore) * 100);
             const yMin = mapY(min), yMax = mapY(max), yLq = mapY(lq), yUq = mapY(uq), yMed = mapY(median), yScore = mapY(score);
+            const boxHeight = Math.max(yLq - yUq, 1.2);
             return `
-                <svg width="40" height="100" viewBox="0 0 40 100" class="overflow-visible drop-shadow-sm">
-                    <line x1="5" y1="0" x2="35" y2="0" stroke="#f1f5f9" stroke-width="2" />
-                    <line x1="5" y1="100" x2="35" y2="100" stroke="#f1f5f9" stroke-width="2" />
+                <svg width="40" height="100" viewBox="0 0 40 100" class="overflow-visible">
+                    <line x1="6" y1="0" x2="34" y2="0" stroke="#f1f5f9" stroke-width="2" />
+                    <line x1="6" y1="100" x2="34" y2="100" stroke="#f1f5f9" stroke-width="2" />
                     <line x1="20" y1="${yMin}" x2="20" y2="${yMax}" class="box-plot-whisker" />
-                    <line x1="12" y1="${yMin}" x2="28" y2="${yMin}" class="box-plot-whisker" />
-                    <line x1="12" y1="${yMax}" x2="28" y2="${yMax}" class="box-plot-whisker" />
-                    <rect x="8" y="${yUq}" width="24" height="${yLq - yUq}" rx="2" class="box-plot-box" />
-                    <line x1="8" y1="${yMed}" x2="32" y2="${yMed}" class="box-plot-median" />
+                    <line x1="13" y1="${yMin}" x2="27" y2="${yMin}" class="box-plot-whisker" />
+                    <line x1="13" y1="${yMax}" x2="27" y2="${yMax}" class="box-plot-whisker" />
+                    <rect x="10" y="${yUq}" width="20" height="${boxHeight}" rx="5" class="box-plot-box" />
+                    <line x1="9" y1="${yMed}" x2="31" y2="${yMed}" class="box-plot-median" />
                     <circle cx="20" cy="${yScore}" r="4.5" class="box-plot-student" />
                 </svg>
             `;
@@ -265,7 +293,7 @@
                         </div>
                     </div>
                     <div class="w-full md:w-1/2 flex items-center gap-4 pt-4 md:pt-0 border-t md:border-t-0">
-                        <div class="flex-1 relative h-[40px]">
+                        <div class="flex-1">
                             ${createHorizontalBoxPlot(groupStats.low, groupStats.high, groupStats.lq, groupStats.median, groupStats.uq, myGroupScore, groupStats.maxScore)}
                         </div>
                         <span class="material-symbols-outlined text-gray-400 chevron text-2xl">expand_more</span>
@@ -331,7 +359,7 @@
             "Set1": { title: "第一大題", questions: ["p1", "p2", "p3", "p4", "p5", "p6", "p7"], maxScore: 100 },
             "Set2": { title: "第二大題", questions: ["p8", "p9", "p10", "p11"], maxScore: 60 }
         };
-        const getPracticalDisplayTitle = qId => qId.toUpperCase();
+        const getPracticalDisplayTitle = qId => qId.replace(/^p/i, '');
         const getPracticalQuestionMax = qId => PRACTICAL_MAX_SCORES[qId] || 0;
 
         // 第二次理論測驗：10 題填充題，每題 8 分，滿分 80
@@ -399,6 +427,17 @@
                         return rounded;
                     }
 
+                    // 分數尚未收到時，不顯示任何統計資料 (箱型圖會誤導成「考 0 分」)，
+                    // 改為顯示提示文字，並隱藏全體總分箱型圖區塊。
+                    function renderNotReceived(containerId, overallPlotId) {
+                        const container = document.getElementById(containerId);
+                        if (container) {
+                            container.innerHTML = `<div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400 text-sm">尚未收到成績，暫不提供統計資料。</div>`;
+                        }
+                        const overallPlot = document.getElementById(overallPlotId);
+                        if (overallPlot) overallPlot.classList.add('hidden');
+                    }
+
                     // 在各區塊標題下方畫出「全體總分」的箱型圖，讓學生知道自己的總分落在班上哪個位置
                     function renderOverallStat(containerId, overall, myScore) {
                         const container = document.getElementById(containerId);
@@ -447,13 +486,18 @@
                         const practicalOverallMax = Object.values(PRACTICAL_GROUPS).reduce((s, g) => s + g.maxScore, 0);
                         const practicalPublicData = await loadPublicStats('practical_test_1_stats', PRACTICAL_GROUPS, practicalOverallMax);
                         const roundedPracticalTotal = renderTotalScore('practical-score', practicalTotalScore);
+                        document.getElementById('practical-deduction').innerText = rawPracticalData.deduction || 0;
                         document.getElementById('practical-total-students').innerText = practicalPublicData.totalStudents || 0;
-                        renderOverallStat('practical-overall-plot', practicalPublicData.overall, roundedPracticalTotal);
 
-                        renderQuestionGroupSection('practical-container', PRACTICAL_GROUPS, practicalScores, practicalGroupScores, practicalPublicData, {
-                            getQuestionMax: getPracticalQuestionMax,
-                            getDisplayTitle: getPracticalDisplayTitle
-                        });
+                        if (roundedPracticalTotal === 0) {
+                            renderNotReceived('practical-container', 'practical-overall-plot');
+                        } else {
+                            renderOverallStat('practical-overall-plot', practicalPublicData.overall, roundedPracticalTotal);
+                            renderQuestionGroupSection('practical-container', PRACTICAL_GROUPS, practicalScores, practicalGroupScores, practicalPublicData, {
+                                getQuestionMax: getPracticalQuestionMax,
+                                getDisplayTitle: getPracticalDisplayTitle
+                            });
+                        }
                     } else {
                         document.getElementById('practical-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有實作測驗成績</p>`;
                     }
@@ -480,12 +524,16 @@
                         const theoryPublicData = await loadPublicStats('theory_test_1_stats', QUESTION_GROUPS, theoryOverallMax);
                         const roundedTheoryTotal = renderTotalScore('theory-score', theoryTotalScore);
                         document.getElementById('theory-total-students').innerText = theoryPublicData.totalStudents || 0;
-                        renderOverallStat('theory-overall-plot', theoryPublicData.overall, roundedTheoryTotal);
 
-                        renderQuestionGroupSection('theory-container', QUESTION_GROUPS, theoryScores, groupScores, theoryPublicData, {
-                            getQuestionMax: () => 5,
-                            getDisplayTitle: getTheoryDisplayTitle
-                        });
+                        if (roundedTheoryTotal === 0) {
+                            renderNotReceived('theory-container', 'theory-overall-plot');
+                        } else {
+                            renderOverallStat('theory-overall-plot', theoryPublicData.overall, roundedTheoryTotal);
+                            renderQuestionGroupSection('theory-container', QUESTION_GROUPS, theoryScores, groupScores, theoryPublicData, {
+                                getQuestionMax: () => 5,
+                                getDisplayTitle: getTheoryDisplayTitle
+                            });
+                        }
                     } else {
                         document.getElementById('theory-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有理論測驗成績</p>`;
                     }
@@ -514,12 +562,16 @@
                         const theory2PublicData = await loadPublicStats('theory_test_2_stats', THEORY2_GROUPS, theory2OverallMax);
                         const roundedTheory2Total = renderTotalScore('theory2-score', theory2TotalScore);
                         document.getElementById('theory2-total-students').innerText = theory2PublicData.totalStudents || 0;
-                        renderOverallStat('theory2-overall-plot', theory2PublicData.overall, roundedTheory2Total);
 
-                        renderQuestionGroupSection('theory2-container', THEORY2_GROUPS, theory2Scores, theory2GroupScores, theory2PublicData, {
-                            getQuestionMax: getTheory2QuestionMax,
-                            getDisplayTitle: qId => qId
-                        });
+                        if (roundedTheory2Total === 0) {
+                            renderNotReceived('theory2-container', 'theory2-overall-plot');
+                        } else {
+                            renderOverallStat('theory2-overall-plot', theory2PublicData.overall, roundedTheory2Total);
+                            renderQuestionGroupSection('theory2-container', THEORY2_GROUPS, theory2Scores, theory2GroupScores, theory2PublicData, {
+                                getQuestionMax: getTheory2QuestionMax,
+                                getDisplayTitle: qId => qId
+                            });
+                        }
                     } else {
                         document.getElementById('theory2-container').innerHTML = `<p class="text-gray-400 text-sm px-2">尚未有估計大賽成績</p>`;
                     }
