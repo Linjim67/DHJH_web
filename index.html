@@ -95,7 +95,7 @@
             <div class="sidebar-item" data-page="transcript" data-title="暑期成績單" data-src="Summer/SummerTranscript.html" data-show="false">
                 <span class="material-symbols-outlined">analytics</span> 暑期成績單
             </div>
-            <div class="sidebar-item" data-page="exam-solution" data-title="暑期理論詳解">
+            <div class="sidebar-item" data-page="exam-solution" data-title="暑期理論詳解" data-src="Summer/SummerSolutions.html">
                 <span class="material-symbols-outlined">picture_as_pdf</span> 暑期理論詳解
             </div>
             <div class="sidebar-item" data-page="auction" data-title="暑期競標" data-src="Summer/SummerAuction.html" data-show="true">
@@ -256,9 +256,9 @@
                     <div class="p-6 bg-green-50 rounded-[24px] border border-green-100 flex flex-col">
                         <div class="flex items-center gap-2 mb-4">
                             <span class="material-symbols-outlined text-green-600" style="font-size: 28px;">account_balance_wallet</span>
-                            <h3 class="text-lg font-bold text-green-900">暑期課程錄影 (開發中)</h3>
+                            <h3 class="text-lg font-bold text-green-900">注意事項</h3>
                         </div>
-                        <p class="text-green-700 text-sm mt-1 leading-relaxed">每天的錄影會在之後上傳。</p>
+                        <p class="text-green-700 text-sm mt-1 leading-relaxed">本系統僅限敦化國中學生登入查看，要求使用google帳戶登入</p>
                     </div>
                 </div>
             </body></html>
@@ -289,43 +289,6 @@
                 } else if (pageId === 'home') {
                     const doc = iframe.contentWindow.document;
                     doc.open(); doc.write(getHomeHTML()); doc.close();
-                } else if (pageId === 'exam-solution') {
-                    // 動態生成帶有防護機制的 PDF 預覽畫面
-                    const doc = iframe.contentWindow.document;
-                    doc.open();
-                    doc.write(`
-                        <!DOCTYPE html>
-                        <html><head>
-                            <title>理論試題詳解</title>
-                            <style>
-                                /* 設定灰色背景，並讓內容置中 */
-                                body { margin: 0; padding: 24px; height: 100vh; background: #f8fafc; display: flex; justify-content: center; align-items: center; box-sizing: border-box; }
-                                
-                                /* 防止圈選文字與觸控長按 */
-                                body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-                                
-                                /* 縮小顯示的外框 (寬度 80%)，加上精美陰影 */
-                                .pdf-wrapper { 
-                                    width: 80%; 
-                                    height: 95%; 
-                                    border-radius: 20px; 
-                                    overflow: hidden; 
-                                    box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-                                    border: 1px solid #e2e8f0; 
-                                    background: #e2e8f0; 
-                                }
-                                iframe { width: 100%; height: 100%; border: none; }
-                            </style>
-                        </head>
-                        <!-- 封鎖滑鼠右鍵，防止另存新檔 -->
-                        <body oncontextmenu="return false;">
-                            <div class="pdf-wrapper">
-                                <!-- 關鍵：加上 #toolbar=0 隱藏下載與列印按鈕，zoom=85 控制初始縮放比例 -->
-                                <iframe src="Summer/Assets/2026-ST-sol.pdf#toolbar=0&navpanes=0&zoom=85" title="解析文件"></iframe>
-                            </div>
-                        </body></html>
-                    `);
-                    doc.close();
                 } else {
                     const doc = iframe.contentWindow.document;
                     doc.open(); doc.write(`<body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;"><h2>${title} 施工中...</h2></body>`); doc.close();
