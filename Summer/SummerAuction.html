@@ -257,11 +257,11 @@
         }
 
         // ==========================================
-        // 出價交易邏輯 (round1 / round2 共用)
+        // 出價交易邏輯 (round1 / round2 共用) 
         // ==========================================
         async function submitBid(target, amount) {
             if (!Number.isFinite(amount) || amount <= 0) { alert('請輸入有效的出價金額'); return; }
-            try {
+            try {// 
                 await runTransaction(db, async (tx) => {
                     const snap = await tx.get(stateRef);
                     const data = snap.data();
@@ -394,6 +394,36 @@
             tickCountdowns();
         }
 
+        // 保存/還原輸入框內容與游標位置，避免其他同學出價觸發的即時同步
+        // (onSnapshot -> fullRender) 把自己正在輸入到一半的出價金額清空。
+        function captureInputState() {
+            const state = {};
+            document.querySelectorAll('#phase-section input').forEach(el => {
+                state[el.id] = {
+                    value: el.value,
+                    focused: document.activeElement === el,
+                    selStart: el.selectionStart,
+                    selEnd: el.selectionEnd
+                };
+            });
+            return state;
+        }
+
+        function restoreInputState(state) {
+            Object.keys(state).forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const s = state[id];
+                el.value = s.value;
+                if (s.focused) {
+                    el.focus();
+                    if (typeof s.selStart === 'number') {
+                        try { el.setSelectionRange(s.selStart, s.selEnd); } catch (e) { /* 非文字輸入框不支援選取範圍 */ }
+                    }
+                }
+            });
+        }
+
         function fullRender() {
             const waitingCard = document.getElementById('waiting-card');
             const phaseSection = document.getElementById('phase-section');
@@ -408,6 +438,8 @@
                 return;
             }
 
+            const inputState = captureInputState();
+
             switch (auctionState.phase) {
                 case 'round1': renderRound1Phase(); break;
                 case 'break': renderBreakPhase(); break;
@@ -416,6 +448,8 @@
                 default:
                     phaseSection.innerHTML = `<div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400">拍賣即將開始，請稍候...</div>`;
             }
+
+            restoreInputState(inputState);
         }
 
         function renderRound1Phase() {
@@ -492,7 +526,7 @@
             if (bs.status === 'running') {
                 html += `<div class="text-2xl font-mono font-bold text-purple-600 mb-4" data-countdown="${bs.endsAt}">${fmtRemaining(bs.endsAt)}</div>`;
             } else {
-                html += `<div class="text-emerald-600 font-bold mb-4">✅ 任務已結算，點數已發放至您的錢包。</div>`;
+                html += `<div class="text-emerald-600 font-bold mb-4">點數已發放至錢包。</div>`;
             }
 
             const disabled = bs.status !== 'running' ? 'disabled' : '';
