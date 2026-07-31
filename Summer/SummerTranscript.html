@@ -92,7 +92,7 @@
             position: relative;
             width: 100%;
             max-width: 800px;
-            height: 120px;
+            height: 52px;
             display: flex;
             align-items: center;
             margin: 0 auto;
@@ -101,7 +101,7 @@
         .box-plot-whisker-track {
             position: absolute;
             top: 50%;
-            height: 8px;
+            height: 4px;
             background-color: #596a78;
             transform: translateY(-50%);
             z-index: 1;
@@ -110,8 +110,8 @@
         .box-plot-whisker-cap {
             position: absolute;
             top: 50%;
-            width: 8px;
-            height: 48px;
+            width: 4px;
+            height: 20px;
             background-color: #596a78;
             transform: translate(-50%, -50%);
             z-index: 2;
@@ -120,33 +120,35 @@
         .box-plot-interquartile-box {
             position: absolute;
             top: 50%;
-            height: 96px;
-            border: 8px solid #596a78;
-            border-radius: 16px;
+            height: 40px;
+            border: 4px solid #596a78;
+            border-radius: 8px;
             background-color: transparent;
             box-sizing: border-box;
             transform: translateY(-50%);
             z-index: 3;
         }
 
+        /* 中位數線的高度直接對齊箱體高度 (與 .box-plot-interquartile-box 的
+           height/置中方式相同)，而不是貫穿整個容器。 */
         .box-plot-median-line {
             position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 8px;
+            top: 50%;
+            height: 40px;
+            width: 4px;
             background-color: #596a78;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             z-index: 3;
         }
 
         .box-plot-indicator-thumb {
             position: absolute;
             top: 50%;
-            width: 72px;
-            height: 72px;
+            width: 32px;
+            height: 32px;
             background-color: #a7bde1;
-            border: 8px solid #284175;
-            border-radius: 16px;
+            border: 4px solid #284175;
+            border-radius: 8px;
             box-sizing: border-box;
             transform: translate(-50%, -50%);
             z-index: 4;
