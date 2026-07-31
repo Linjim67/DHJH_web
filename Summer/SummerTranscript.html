@@ -149,7 +149,7 @@
                     </div>
                 </div>
             </div>
-            <div id="practical-overall-plot" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3"></div>
+            <div id="practical-overall-plot" class="hidden mb-3"></div>
             <main id="practical-container" class="space-y-4"></main>
         </section>
 
@@ -169,7 +169,7 @@
                     </div>
                 </div>
             </div>
-            <div id="theory-overall-plot" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3"></div>
+            <div id="theory-overall-plot" class="hidden mb-3"></div>
             <main id="theory-container" class="space-y-4"></main>
         </section>
 
@@ -189,7 +189,7 @@
                     </div>
                 </div>
             </div>
-            <div id="theory2-overall-plot" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-3"></div>
+            <div id="theory2-overall-plot" class="hidden mb-3"></div>
             <main id="theory2-container" class="space-y-4"></main>
         </section>
     </div>
@@ -448,12 +448,18 @@
                         }
                         container.classList.remove('hidden');
                         const maxScore = overall.maxScore || 1;
+                        // 與小題卡片 (renderQuestionGroupSection 裡的小題方塊) 使用同一套格式，
+                        // 只是把直式箱型圖換成橫式、卡片寬度改為滿版。
                         container.innerHTML = `
-                            <div class="flex justify-between items-center mb-2 text-xs text-gray-500">
-                                <span class="font-semibold text-gray-600">全體總分分佈</span>
-                                <span>Mean: ${overall.mean.toFixed(2)}　Median: ${overall.median}　High: ${overall.high}　Low: ${overall.low}</span>
+                            <div class="flex flex-col items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                <div class="text-sm font-bold text-gray-700 mb-1">全體總分分佈</div>
+                                <div class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded mb-3 border border-blue-100">
+                                    ${myScore}<span class="text-gray-400">/${maxScore}</span>
+                                </div>
+                                <div class="w-full">
+                                    ${createHorizontalBoxPlot(overall.low, overall.high, overall.lq, overall.median, overall.uq, myScore, maxScore)}
+                                </div>
                             </div>
-                            ${createHorizontalBoxPlot(overall.low, overall.high, overall.lq, overall.median, overall.uq, myScore, maxScore)}
                         `;
                     }
 
